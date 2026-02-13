@@ -1,0 +1,41 @@
+:root {
+  /* RAL 9010 - Pure White / Background */
+  --color-bg: #FFFFFF; 
+  /* RAL 9001 - Cream / Card Background */
+  --color-card: #FDFBF7;
+  /* RAL 7035 - Light Grey / Borders */
+  --color-border: #D7D7D7;
+  
+  /* RAL 5003 - Sapphire Blue / Primary */
+  --color-primary: #1D334A;
+  --color-primary-foreground: #FFFFFF;
+
+  /* RAL 5012 - Light Blue / Accents */
+  --color-accent: #3B83BD;
+  --color-accent-foreground: #FFFFFF;
+
+  /* RAL 7016 - Anthracite Grey / Text */
+  --color-text: #293133;
+  --color-text-muted: #6B7280;
+
+  /* Status Colors */
+  --color-success: #10B981; /* Emerald 500 */
+  --color-warning: #F59E0B; /* Amber 500 */
+  --color-error: #EF4444;   /* Red 500 */
+}
+
+.dark {
+  /* Dark Mode adjustments - using darker RAL shades or inversions */
+  /* RAL 7021 - Black Grey */
+  --color-bg: #23282B;
+  /* RAL 7016 - Anthracite Grey */
+  --color-card: #293133;
+  /* RAL 7005 - Mouse Grey */
+  --color-border: #6D7278;
+
+  --color-primary: #3B83BD; /* Light Blue for contrast */
+  --color-primary-foreground: #FFFFFF;
+
+  --color-text: #FDFBF7; /* RAL 9001 */
+  --color-text-muted: #9CA3AF;
+}
