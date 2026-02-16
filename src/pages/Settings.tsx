@@ -79,8 +79,9 @@ export default function SettingsPage() {
         setIsBackingUp(true);
         try {
             // Use specific queries for each table
+            // We use Promise.all because Supabase client doesn't throw on query errors, it returns { data, error }
             const results = await Promise.all([
-                supabase.from('settings').select('*'), // Intentionally no .eq('user_id') to match settingsApi pattern
+                supabase.from('settings').select('*').eq('user_id', user.id),
                 supabase.from('actions').select('*').eq('user_id', user.id),
                 supabase.from('meetings').select('*').eq('user_id', user.id),
                 supabase.from('journal_entries').select('*').eq('user_id', user.id),
@@ -91,29 +92,33 @@ export default function SettingsPage() {
             ]);
 
             const keys = ['settings', 'actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
-            const errors = results.map((r, i) => r.error ? { table: keys[i], error: r.error } : null).filter(Boolean);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const dataMap: Record<string, any[]> = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const errors: { table: string, error: any }[] = [];
+
+            results.forEach((result, index) => {
+                const key = keys[index];
+                if (result.error) {
+                    console.error(`Error backing up ${key}:`, result.error);
+                    errors.push({ table: key, error: result.error });
+                    dataMap[key] = []; // Fallback to empty array
+                } else {
+                    dataMap[key] = result.data || [];
+                }
+            });
 
             if (errors.length > 0) {
-                console.error('Backup errors:', errors);
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                alert(`Backup failed for tables:\n${errors.map(e => `- ${e?.table}: ${(e?.error as any)?.message || JSON.stringify(e?.error)}`).join('\n')}`);
-                throw new Error('Backup incomplete');
+                const errorMsg = `Backup completed with WARNINGS.\n\nThe following tables could not be exported (likely empty or access denied):\n${errors.map(e => `- ${e.table}: ${(e.error as any)?.message || 'Unknown error'}`).join('\n')}\n\nThe backup file contains all other available data.`;
+                alert(errorMsg);
             }
 
             const backupData = {
                 timestamp: new Date().toISOString(),
                 version: '1.0',
                 user_id: user.id,
-                data: {
-                    settings: results[0].data,
-                    actions: results[1].data,
-                    meetings: results[2].data,
-                    journal_entries: results[3].data,
-                    tags: results[4].data,
-                    time_entries: results[5].data,
-                    knowledge_pages: results[6].data,
-                    decisions: results[7].data
-                }
+                data: dataMap
             };
 
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -127,10 +132,8 @@ export default function SettingsPage() {
             URL.revokeObjectURL(url);
 
         } catch (error) {
-            console.error('Backup failed:', error);
-            if ((error as Error).message !== 'Backup incomplete') {
-                alert('Failed to generate backup: ' + (error as Error).message);
-            }
+            console.error('Backup CRITICAL failure:', error);
+            alert('Critical failure generating backup: ' + (error as Error).message);
         } finally {
             setIsBackingUp(false);
         }
