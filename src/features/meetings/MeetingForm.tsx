@@ -233,7 +233,11 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                             <div>
                                 <TagSelector
                                     selectedTagIds={formData.label_ids || []}
-                                    onChange={(ids) => setFormData({ ...formData, label_ids: ids })}
+                                    onChange={(ids, names) => setFormData({
+                                        ...formData,
+                                        label_ids: ids,
+                                        tags: names
+                                    })}
                                 />
                             </div>
 

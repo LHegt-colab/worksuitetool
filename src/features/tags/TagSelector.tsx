@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 
 interface TagSelectorProps {
     selectedTagIds: string[];
-    onChange: (tagIds: string[]) => void;
+    onChange: (tagIds: string[], tagNames: string[]) => void;
 }
 
 export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
@@ -24,11 +24,19 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
     }, [isManagerOpen]);
 
     const toggleTag = (id: string) => {
+        let newIds: string[];
         if (selectedTagIds.includes(id)) {
-            onChange(selectedTagIds.filter(tagId => tagId !== id));
+            newIds = selectedTagIds.filter(tagId => tagId !== id);
         } else {
-            onChange([...selectedTagIds, id]);
+            newIds = [...selectedTagIds, id];
         }
+
+        // Map IDs to Names for synchronization
+        const newNames = newIds
+            .map(tid => tags.find(t => t.id === tid)?.name)
+            .filter((name): name is string => !!name);
+
+        onChange(newIds, newNames);
     };
 
     return (
