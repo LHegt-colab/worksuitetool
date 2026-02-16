@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { EntitySelector } from '../../components/ui/EntitySelector';
 import { actionsApi, type Action } from '../actions/api';
-import { differenceInMinutes, parse } from 'date-fns';
+import { differenceInMinutes, parse, format } from 'date-fns';
 
 interface TimeFormProps {
     initialData?: TimeEntry;
@@ -21,7 +21,7 @@ export function TimeForm({ initialData, onSubmit, onCancel, isOpen }: TimeFormPr
 
     // Form State
     const [formData, setFormData] = useState<Partial<NewTimeEntry>>({
-        date: new Date().toISOString().split('T')[0],
+        date: format(new Date(), 'yyyy-MM-dd'),
         type: 'work',
         duration: 0,
         description: '',
@@ -67,7 +67,7 @@ export function TimeForm({ initialData, onSubmit, onCancel, isOpen }: TimeFormPr
         } else {
             // Reset to defaults
             setFormData({
-                date: new Date().toISOString().split('T')[0],
+                date: format(new Date(), 'yyyy-MM-dd'),
                 type: 'work',
                 duration: 450, // 7.5h default
                 description: '',

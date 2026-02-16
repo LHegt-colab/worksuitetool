@@ -6,7 +6,7 @@ import { TimeReporting } from './TimeReporting';
 import { Plus, CheckSquare, Clock, Briefcase, Sun, AlertCircle, TrendingUp, RefreshCw } from 'lucide-react';
 import { actionsApi, type Action } from '../actions/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { eachDayOfInterval, startOfMonth, endOfMonth, parseISO, isWeekend } from 'date-fns';
+import { eachDayOfInterval, startOfMonth, endOfMonth, parseISO, isWeekend, format } from 'date-fns';
 
 export function TimeList() {
     const [entries, setEntries] = useState<TimeEntry[]>([]);
@@ -20,8 +20,8 @@ export function TimeList() {
 
     // Default to current month
     const now = new Date();
-    const [startDate, setStartDate] = useState(startOfMonth(now).toISOString().split('T')[0]);
-    const [endDate, setEndDate] = useState(endOfMonth(now).toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(format(startOfMonth(now), 'yyyy-MM-dd'));
+    const [endDate, setEndDate] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
 
     const loadData = useCallback(async () => {
         try {
