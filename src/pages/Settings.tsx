@@ -78,18 +78,25 @@ export default function SettingsPage() {
         if (!user) return;
         setIsBackingUp(true);
         try {
-            const tables = ['settings', 'actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
+            // Use specific queries for each table
+            const results = await Promise.all([
+                supabase.from('settings').select('*'), // Intentionally no .eq('user_id') to match settingsApi pattern
+                supabase.from('actions').select('*').eq('user_id', user.id),
+                supabase.from('meetings').select('*').eq('user_id', user.id),
+                supabase.from('journal_entries').select('*').eq('user_id', user.id),
+                supabase.from('tags').select('*').eq('user_id', user.id),
+                supabase.from('time_entries').select('*').eq('user_id', user.id),
+                supabase.from('knowledge_pages').select('*').eq('user_id', user.id),
+                supabase.from('decisions').select('*').eq('user_id', user.id)
+            ]);
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const promises = tables.map(table => supabase.from(table as any).select('*').eq('user_id', user.id));
-
-            const results = await Promise.all(promises);
-
-            const errors = results.map((r, index) => r.error ? { table: tables[index], error: r.error } : null).filter(Boolean);
+            const keys = ['settings', 'actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
+            const errors = results.map((r, i) => r.error ? { table: keys[i], error: r.error } : null).filter(Boolean);
 
             if (errors.length > 0) {
                 console.error('Backup errors:', errors);
-                alert(`Backup failed for tables: ${errors.map(e => e?.table).join(', ')}. Check console for details.`);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                alert(`Backup failed for tables:\n${errors.map(e => `- ${e?.table}: ${(e?.error as any)?.message || JSON.stringify(e?.error)}`).join('\n')}`);
                 throw new Error('Backup incomplete');
             }
 
@@ -121,7 +128,6 @@ export default function SettingsPage() {
 
         } catch (error) {
             console.error('Backup failed:', error);
-            // alert handled above for specific errors, or generic for others
             if ((error as Error).message !== 'Backup incomplete') {
                 alert('Failed to generate backup: ' + (error as Error).message);
             }
