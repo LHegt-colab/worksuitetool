@@ -229,21 +229,27 @@ export default function SettingsPage() {
             const tableData = entries.map((entry: JournalEntry) => [
                 format(new Date(entry.date), 'dd-MM-yyyy'),
                 entry.title,
-                entry.content.substring(0, 100) + (entry.content.length > 100 ? '...' : ''),
+                entry.content || '', // Full content
                 entry.tags?.join(', ') || ''
             ]);
 
             autoTable(doc, {
-                head: [['Date', 'Title', 'Content Preview', 'Tags']],
+                head: [['Date', 'Title', 'Content', 'Tags']],
                 body: tableData,
                 startY: 40,
-                styles: { fontSize: 8 },
+                styles: {
+                    fontSize: 10, // Increased from 8 for readability
+                    cellPadding: 3,
+                    overflow: 'linebreak' // Ensure text wraps
+                },
+                bodyStyles: { valign: 'top' }, // Align top for better readability
                 columnStyles: {
-                    0: { cellWidth: 25 },
-                    1: { cellWidth: 40 },
-                    2: { cellWidth: 'auto' },
-                    3: { cellWidth: 25 }
-                }
+                    0: { cellWidth: 25 }, // Date
+                    1: { cellWidth: 40 }, // Title
+                    2: { cellWidth: 'auto' }, // Content (Takes remaining space)
+                    3: { cellWidth: 25 }  // Tags
+                },
+                // Ensure rows don't split awkwardly if possible, though autotable handles this well defaults
             });
 
             // Save
