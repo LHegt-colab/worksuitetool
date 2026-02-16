@@ -1,9 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { settingsApi, type Settings, type NewSettings } from '../features/settings/api';
 import { journalApi, type JournalEntry } from '../features/journal/api';
+import { supabase } from '../lib/supabase';
+// import { decisionsApi } from '../features/decisions/api'; // Decisions usually fetched via meetings, but let's see if we can fetch all.
 import { TagManager } from '../features/tags/TagManager';
-import { Save, FileText, Settings as SettingsIcon, Tag as TagIcon } from 'lucide-react';
+import { Save, FileText, Settings as SettingsIcon, Tag as TagIcon, Download, Database } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -25,6 +28,7 @@ export default function SettingsPage() {
         new Date().toISOString().split('T')[0]
     );
     const [isExporting, setIsExporting] = useState(false);
+    const [isBackingUp, setIsBackingUp] = useState(false);
 
     useEffect(() => {
         loadSettings();
@@ -67,6 +71,64 @@ export default function SettingsPage() {
         }
     };
 
+
+
+    const handleExportBackup = async () => {
+        if (!user) return;
+        setIsBackingUp(true);
+        try {
+            const results = await Promise.all([
+                supabase.from('settings').select('*').eq('user_id', user.id),
+                supabase.from('actions').select('*').eq('user_id', user.id),
+                supabase.from('meetings').select('*').eq('user_id', user.id),
+                supabase.from('journal_entries').select('*').eq('user_id', user.id),
+                supabase.from('tags').select('*').eq('user_id', user.id),
+                supabase.from('time_entries').select('*').eq('user_id', user.id),
+                supabase.from('knowledge_pages').select('*').eq('user_id', user.id),
+                supabase.from('decisions').select('*').eq('user_id', user.id)
+            ]);
+
+            // Check for errors
+            const errors = results.filter(r => r.error);
+            if (errors.length > 0) {
+                console.error('Backup errors:', errors);
+                throw new Error('Some data could not be fetched.');
+            }
+
+            const backupData = {
+                timestamp: new Date().toISOString(),
+                version: '1.0',
+                user_id: user.id,
+                data: {
+                    settings: results[0].data,
+                    actions: results[1].data,
+                    meetings: results[2].data,
+                    journal_entries: results[3].data,
+                    tags: results[4].data,
+                    time_entries: results[5].data,
+                    knowledge_pages: results[6].data,
+                    decisions: results[7].data
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `worksuitetool_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('Backup failed:', error);
+            alert('Failed to generate backup.');
+        } finally {
+            setIsBackingUp(false);
+        }
+    };
+
     const handleExportJournal = async () => {
         if (!user) return;
         setIsExporting(true);
@@ -86,8 +148,8 @@ export default function SettingsPage() {
             doc.setFontSize(20);
             doc.text('Journal Export', 14, 22);
             doc.setFontSize(10);
-            doc.text(`Period: ${exportStartDate} to ${exportEndDate}`, 14, 30);
-            doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
+            doc.text(`Period: ${exportStartDate} to ${exportEndDate} `, 14, 30);
+            doc.text(`Generated: ${new Date().toLocaleString()} `, 14, 35);
 
             // Table
             const tableData = entries.map((entry: JournalEntry) => [
@@ -221,6 +283,34 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground">
                         Generates a PDF overview of all journal entries within the selected date range.
                     </p>
+                </div>
+            </section>
+
+            {/* Data Management */}
+            <section className="bg-card p-6 rounded-lg border border-border space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Database className="h-5 w-5" /> Data Management
+                </h2>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-t border-border pt-4">
+                    <div>
+                        <h3 className="font-medium text-lg">Full JSON Backup</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Download a complete copy of all your data (Settings, Actions, Meetings, Journal, Time, etc.) as a JSON file.
+                        </p>
+                    </div>
+                    <button
+                        onClick={handleExportBackup}
+                        disabled={isBackingUp}
+                        className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-md font-medium hover:bg-secondary/80 disabled:opacity-50"
+                    >
+                        {isBackingUp ? (
+                            'Exporting...'
+                        ) : (
+                            <>
+                                <Download className="h-4 w-4" /> Download Backup
+                            </>
+                        )}
+                    </button>
                 </div>
             </section>
 
