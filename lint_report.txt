@@ -1,0 +1,136 @@
+
+> worksuitetool@0.0.0 lint
+> eslint .
+
+
+C:\AI_Projecten\WorkSuiteTool\src\contexts\AuthContext.tsx
+  51:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\AI_Projecten\WorkSuiteTool\src\contexts\ThemeContext.tsx
+  65:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\AI_Projecten\WorkSuiteTool\src\features\actions\ActionForm.tsx
+  114:103  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:105  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\AI_Projecten\WorkSuiteTool\src\features\actions\api.ts
+  33:31  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  44:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\AI_Projecten\WorkSuiteTool\src\features\calendar\CalendarView.tsx
+  59:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\AI_Projecten\WorkSuiteTool\src\features\decisions\api.ts
+  23:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  35:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\AI_Projecten\WorkSuiteTool\src\features\journal\JournalList.tsx
+  47:8  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\AI_Projecten\WorkSuiteTool\src\features\journal\api.ts
+  41:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  53:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\AI_Projecten\WorkSuiteTool\src\features\knowledge\api.ts
+  33:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  45:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\AI_Projecten\WorkSuiteTool\src\features\meetings\api.ts
+  31:9   error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  34:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  46:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\AI_Projecten\WorkSuiteTool\src\features\tags\TagSelector.tsx
+  22:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\AI_Projecten\WorkSuiteTool\src\features\tags\TagSelector.tsx:22:9
+  20 |
+  21 |     useEffect(() => {
+> 22 |         loadTags();
+     |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }, [isManagerOpen]); // Reload when manager closes
+  24 |
+  25 |     const toggleTag = (id: string) => {  react-hooks/set-state-in-effect
+
+C:\AI_Projecten\WorkSuiteTool\src\features\tags\api.ts
+  22:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  34:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\AI_Projecten\WorkSuiteTool\src\features\time\TimeList.tsx
+  42:8  warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\AI_Projecten\WorkSuiteTool\src\features\time\api.ts
+  30:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  42:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\AI_Projecten\WorkSuiteTool\src\pages\Login.tsx
+  36:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\components\Calendar\CalendarDay.tsx
+  2:10  error  'Clock' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\components\Calendar\CreateItemModal.tsx
+    2:36  error  'Clock' is defined but never used         @typescript-eslint/no-unused-vars
+  197:82  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\components\common\TagSelector.tsx
+  4:29  error  'Plus' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\contexts\AuthContext.tsx
+  51:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\contexts\ThemeContext.tsx
+  38:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\ActionDetail.tsx
+  89:18  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\Calendar.tsx
+   2:63  error    'LayoutList' is defined but never used                                                                        @typescript-eslint/no-unused-vars
+   2:75  error    'CalendarDays' is defined but never used                                                                      @typescript-eslint/no-unused-vars
+   2:89  error    'Grid3X3' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+   2:98  error    'ArrowLeft' is defined but never used                                                                         @typescript-eslint/no-unused-vars
+  34:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\GlobalLabels.tsx
+   7:10  error  'journalApi' is defined but never used            @typescript-eslint/no-unused-vars
+  69:11  error  'getTagColor' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\KnowledgeDetail.tsx
+  76:18  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\Login.tsx
+  37:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\MeetingDetail.tsx
+  86:18  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\TimeManagement.tsx
+   37:8    warning  React Hook useEffect has a missing dependency: 'loadTimesheet'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+  366:115  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  438:91   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  445:9    error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\AI_Projecten\WorkSuiteTool\src_backup\pages\TimeManagement.tsx:445:9
+  443 |
+  444 |     useEffect(() => {
+> 445 |         setStart(entry.start_time || '');
+      |         ^^^^^^^^ Avoid calling setState() directly within an effect
+  446 |         setEnd(entry.end_time || '');
+  447 |         setBreakMins(entry.break_minutes || 30);
+  448 |         setIsDirty(false);  react-hooks/set-state-in-effect
+
+✖ 45 problems (41 errors, 4 warnings)
+
