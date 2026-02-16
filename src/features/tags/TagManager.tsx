@@ -30,8 +30,8 @@ export function TagManager({ isOpen, onClose }: TagManagerProps) {
         }
     }, [isOpen]);
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCreate = async (e?: React.FormEvent | React.KeyboardEvent | React.MouseEvent) => {
+        if (e) e.preventDefault();
         if (!user || !newTagName.trim()) return;
 
         setLoading(true);
@@ -75,7 +75,7 @@ export function TagManager({ isOpen, onClose }: TagManagerProps) {
                     </button>
                 </div>
 
-                <form onSubmit={handleCreate} className="mb-6 flex gap-2">
+                <div className="mb-6 flex gap-2">
                     <input
                         type="color"
                         value={newTagColor}
@@ -87,18 +87,19 @@ export function TagManager({ isOpen, onClose }: TagManagerProps) {
                         type="text"
                         value={newTagName}
                         onChange={(e) => setNewTagName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleCreate(e)}
                         placeholder="New Label Name"
                         className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                        required
                     />
                     <button
-                        type="submit"
+                        type="button"
+                        onClick={handleCreate}
                         disabled={loading}
                         className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
                         <Plus className="h-4 w-4" />
                     </button>
-                </form>
+                </div>
 
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {tags.map(tag => (

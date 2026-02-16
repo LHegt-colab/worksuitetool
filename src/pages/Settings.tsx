@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { settingsApi, type Settings, type NewSettings } from '../features/settings/api';
 import { journalApi, type JournalEntry } from '../features/journal/api';
-import { Save, FileText, Settings as SettingsIcon } from 'lucide-react';
+import { TagManager } from '../features/tags/TagManager';
+import { Save, FileText, Settings as SettingsIcon, Tag as TagIcon } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -14,6 +15,7 @@ export default function SettingsPage() {
     const [vacationDays, setVacationDays] = useState(25);
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
 
     // Export State
     const [exportStartDate, setExportStartDate] = useState(
@@ -155,7 +157,15 @@ export default function SettingsPage() {
                         />
                         <p className="text-xs text-muted-foreground mt-1">Total allowance for the year.</p>
                     </div>
-                    <div className="md:col-span-2 flex justify-end">
+                    <div className="md:col-span-2 flex justify-between items-center pt-4 border-t border-border">
+                        <button
+                            type="button"
+                            onClick={() => setIsTagManagerOpen(true)}
+                            className="flex items-center gap-2 text-sm font-medium text-foreground hover:underline"
+                        >
+                            <TagIcon className="h-4 w-4" />
+                            Manage Labels
+                        </button>
                         <button
                             type="submit"
                             disabled={saving}
@@ -213,6 +223,8 @@ export default function SettingsPage() {
                     </p>
                 </div>
             </section>
+
+            <TagManager isOpen={isTagManagerOpen} onClose={() => setIsTagManagerOpen(false)} />
         </div>
     );
 }
