@@ -152,23 +152,65 @@ export function CalendarView() {
 
     const handleToday = () => setCurrentDate(new Date());
 
+    // Helper: Calculate Saturation from Hex
+    const getSaturation = (hex: string) => {
+        // Remove hash if present
+        hex = hex.replace(/^#/, '');
+
+        // Parse r, g, b
+        const r = parseInt(hex.substring(0, 2), 16) / 255;
+        const g = parseInt(hex.substring(2, 4), 16) / 255;
+        const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const delta = max - min;
+
+        // Saturation logic (HSV/HSB model often used for 'colorfulness')
+        // If max is 0, saturation is 0. 
+        if (max === 0) return 0;
+        return delta / max;
+    };
+
     // Helper: Get Color for Item
     const getItemStyle = (item: Meeting | Action) => {
         const itemTags = item.tags || [];
-        const firstTag = itemTags.length > 0 ? tags.find(t => t.name === itemTags[0]) : null;
+
+        // Find all tag objects that match the item's tag names
+        const matchedTags = itemTags
+            .map(tagName => tags.find(t => t.name === tagName))
+            .filter((t): t is Tag => !!t); // Filter out undefined
 
         // Default Colors
-        // Meeting: Blue (#3b82f6)
-        // Action: Green (#22c55e)
         const isMeeting = 'date_time' in item;
         const defaultColor = isMeeting ? '#3b82f6' : '#22c55e';
 
-        const color = firstTag?.color || defaultColor;
+        // Intelligent Color Selection:
+        // Prioritize: 
+        // 1. High Saturation (Colorful labels beat Gray/Black/White labels)
+        // 2. Last in list (if saturations are similar, prefer recently added tag)
+        let selectedColor = defaultColor;
+
+        if (matchedTags.length > 0) {
+            // Sort by saturation descending. 
+            // If saturations matches (or is very close), keep original order (which effectively prioritizes 'later' ones if we used a stable sort, but here we just want the 'best' one).
+            // Actually, let's pick the "Best" one.
+            const sortedTags = matchedTags.map(t => ({
+                tag: t,
+                sat: getSaturation(t.color || '#000000')
+            })).sort((a, b) => b.sat - a.sat);
+
+            // Use the most saturated tag's color
+            selectedColor = sortedTags[0].tag.color || defaultColor;
+
+            // Edge case: If the most saturated color is still very dull (e.g. all grays), it will just pick the "least gray" gray. 
+            // But if one is Green (sat ~1.0) and one is Dark Blue (sat ~0.3), Green wins.
+        }
 
         return {
-            background: `color-mix(in srgb, ${color}, transparent 85%)`, // Modern CSS for nice tint
-            borderLeft: `3px solid ${color}`, // Strong visual indicator
-            color: 'inherit', // Let parent text color apply (or set specific if needed)
+            background: `color-mix(in srgb, ${selectedColor}, transparent 85%)`,
+            borderLeft: `4px solid ${selectedColor}`, // Increased from 3px to 4px for better visibility
+            color: 'inherit',
         };
     };
 
