@@ -77,72 +77,73 @@ export default function SettingsPage() {
     const handleExportBackup = async () => {
         if (!user) return;
         setIsBackingUp(true);
+
+        // Prepare data structure
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const backupData: any = {
+            timestamp: new Date().toISOString(),
+            version: '1.0',
+            user_id: user.id,
+            data: {
+                settings: [],
+                actions: [],
+                meetings: [],
+                journal_entries: [],
+                tags: [],
+                time_entries: [],
+                knowledge_pages: [],
+                decisions: []
+            }
+        };
+
+        const errors: string[] = [];
+
         try {
-            // 1. Fetch settings using the API which we know works
-            const settingsData = await settingsApi.getSettings();
-
-            // 2. Fetch other tables
-            const tables = ['actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const promises = tables.map(table => supabase.from(table as any).select('*').eq('user_id', user.id));
-
-            const results = await Promise.all(promises);
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const dataMap: Record<string, any[]> = {};
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const errors: { table: string, error: any }[] = [];
-
-            // Add settings
-            if (settingsData) {
-                dataMap['settings'] = [settingsData];
-            } else {
-                // If null (no settings yet), just empty array
-                dataMap['settings'] = [];
+            // 1. Fetch Settings (Safe Wrapper)
+            try {
+                const settings = await settingsApi.getSettings();
+                backupData.data.settings = settings ? [settings] : [];
+            } catch (e) {
+                console.error('Backup error (settings):', e);
+                errors.push(`settings: ${(e as Error).message}`);
             }
 
-            // Process other results
-            results.forEach((result, index) => {
-                const key = tables[index];
-                if (result.error) {
-                    console.error(`Error backing up ${key}:`, result.error);
-                    errors.push({ table: key, error: result.error });
-                    dataMap[key] = [];
-                } else {
-                    dataMap[key] = result.data || [];
+            // 2. Fetch Other Tables Loop
+            const tables = ['actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
+
+            for (const table of tables) {
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const { data, error } = await supabase.from(table as any).select('*').eq('user_id', user.id);
+                    if (error) throw error;
+                    backupData.data[table] = data || [];
+                } catch (e) {
+                    console.error(`Backup error (${table}):`, e);
+                    errors.push(`${table}: ${(e as Error).message}`);
                 }
-            });
+            }
 
-            const backupData = {
-                timestamp: new Date().toISOString(),
-                version: '1.0',
-                user_id: user.id,
-                data: dataMap
-            };
-
-            // 3. Generate and Download
+            // 3. Generate Download (Guaranteed)
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `worksuitetool_backup_${new Date().toISOString().split('T')[0]}_${new Date().getTime()}.json`; // Added timestamp for uniqueness
+            a.download = `worksuitetool_backup_${new Date().toISOString().split('T')[0]}_${new Date().getTime()}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            // 4. Show warnings AFTER download starts
+            // 4. Report status
             if (errors.length > 0) {
                 setTimeout(() => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const errorMsg = `Backup file downloaded with WARNINGS.\n\nThe following tables could not be exported:\n${errors.map(e => `- ${e.table}: ${(e.error as any)?.message || 'Unknown error'}`).join('\n')}\n\nAll other data is included in the file.`;
-                    alert(errorMsg);
+                    alert(`Backup Saved with WARNINGS!\n\nThe file was saved, but the following tables failed to load:\n${errors.map(e => `- ${e}`).join('\n')}\n\nAll other data is included.`);
                 }, 500);
             }
 
-        } catch (error) {
-            console.error('Backup CRITICAL failure:', error);
-            alert('Critical failure generating backup: ' + (error as Error).message);
+        } catch (criticalError) {
+            console.error('Critical Backup Error:', criticalError);
+            alert('Critical error: ' + (criticalError as Error).message);
         } finally {
             setIsBackingUp(false);
         }
