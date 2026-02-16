@@ -24,6 +24,7 @@ import {
 import { ChevronLeft, ChevronRight, Clock, CheckSquare, Plus } from 'lucide-react';
 import { actionsApi, type Action } from '../actions/api';
 import { meetingsApi, type Meeting } from '../meetings/api';
+import { tagsApi, type Tag } from '../tags/api';
 import { ActionForm } from '../actions/ActionForm';
 import { MeetingForm } from '../meetings/MeetingForm';
 
@@ -34,6 +35,7 @@ export function CalendarView() {
     const [view, setView] = useState<ViewMode>('week');
     const [actions, setActions] = useState<Action[]>([]);
     const [meetings, setMeetings] = useState<Meeting[]>([]);
+    const [tags, setTags] = useState<Tag[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Modal states
@@ -47,12 +49,14 @@ export function CalendarView() {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [actionsData, meetingsData] = await Promise.all([
+            const [actionsData, meetingsData, tagsData] = await Promise.all([
                 actionsApi.getActions(),
-                meetingsApi.getMeetings()
+                meetingsApi.getMeetings(),
+                tagsApi.getTags()
             ]);
             setActions(actionsData || []);
             setMeetings(meetingsData || []);
+            setTags(tagsData || []);
         } catch (error) {
             console.error('Failed to load calendar data:', error);
         } finally {
@@ -147,6 +151,26 @@ export function CalendarView() {
     };
 
     const handleToday = () => setCurrentDate(new Date());
+
+    // Helper: Get Color for Item
+    const getItemStyle = (item: Meeting | Action) => {
+        const itemTags = item.tags || [];
+        const firstTag = itemTags.length > 0 ? tags.find(t => t.name === itemTags[0]) : null;
+
+        // Default Colors
+        // Meeting: Blue
+        // Action: Green
+        const isMeeting = 'date_time' in item;
+        const defaultColor = isMeeting ? '#3b82f6' : '#22c55e'; // blue-500 : green-500
+
+        const color = firstTag?.color || defaultColor;
+
+        return {
+            backgroundColor: `${color}20`, // 12% opacity (approx bg-X-100)
+            borderColor: `${color}60`,    // 37% opacity (approx border-X-300)
+            color: color,                 // Text color
+        };
+    };
 
     // --- Render Logic ---
 
@@ -290,6 +314,8 @@ export function CalendarView() {
                                 {[...dayMeetings, ...dayActions].slice(0, 4).map((item, idx) => {
                                     const isMeeting = 'date_time' in item;
                                     const time = isMeeting ? format(parseISO((item as Meeting).date_time), 'HH:mm') : null;
+                                    const style = getItemStyle(item as Meeting | Action);
+
                                     return (
                                         <div
                                             key={idx}
@@ -298,7 +324,8 @@ export function CalendarView() {
                                                 if (isMeeting) openEditMeeting(item as Meeting);
                                                 else openEditAction(item as Action);
                                             }}
-                                            className="rounded px-1.5 py-1 text-xs border truncate flex items-center gap-1 bg-secondary/20 border-secondary/40 cursor-pointer hover:bg-secondary/40"
+                                            className="rounded px-1.5 py-1 text-xs border truncate flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                                            style={style}
                                         >
                                             {isMeeting ? <Clock className="h-3 w-3" /> : <CheckSquare className="h-3 w-3" />}
                                             {time && <span className="opacity-70">{time}</span>}
@@ -359,19 +386,23 @@ export function CalendarView() {
 
                             return (
                                 <div key={day.toString()} className="border-r border-border last:border-r-0 p-1 space-y-1">
-                                    {dayActions.map(action => (
-                                        <div
-                                            key={action.id}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                openEditAction(action);
-                                            }}
-                                            className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs rounded px-1 py-0.5 border border-green-200 dark:border-green-800 truncate flex items-center gap-1 cursor-pointer hover:bg-green-200 dark:hover:bg-green-900/50"
-                                        >
-                                            <CheckSquare className="h-3 w-3 shrink-0" />
-                                            {action.title}
-                                        </div>
-                                    ))}
+                                    {dayActions.map(action => {
+                                        const style = getItemStyle(action);
+                                        return (
+                                            <div
+                                                key={action.id}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditAction(action);
+                                                }}
+                                                className="text-xs rounded px-1 py-0.5 border truncate flex items-center gap-1 cursor-pointer hover:opacity-80"
+                                                style={style}
+                                            >
+                                                <CheckSquare className="h-3 w-3 shrink-0" />
+                                                {action.title}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             );
                         })}
@@ -410,6 +441,7 @@ export function CalendarView() {
                                                 const startMinutes = dt.getHours() * 60 + dt.getMinutes();
                                                 const top = (startMinutes / 60) * CELL_HEIGHT;
                                                 const height = CELL_HEIGHT; // Default 1 hour duration
+                                                const style = getItemStyle(meeting);
 
                                                 return (
                                                     <div
@@ -418,8 +450,8 @@ export function CalendarView() {
                                                             e.stopPropagation();
                                                             openEditMeeting(meeting);
                                                         }}
-                                                        className="absolute left-1 right-1 rounded p-1 text-xs bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-100 overflow-hidden cursor-pointer hover:shadow-md z-10 hover:bg-blue-200 dark:hover:bg-blue-800/60"
-                                                        style={{ top, height, minHeight: '30px' }}
+                                                        className="absolute left-1 right-1 rounded p-1 text-xs border overflow-hidden cursor-pointer hover:shadow-md z-10 hover:opacity-90"
+                                                        style={{ top, height, minHeight: '30px', ...style }}
                                                     >
                                                         <div className="font-semibold">{periodString(dt)}</div>
                                                         <div className="font-medium truncate">{meeting.title}</div>
