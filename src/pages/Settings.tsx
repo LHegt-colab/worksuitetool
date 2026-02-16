@@ -6,7 +6,7 @@ import { journalApi, type JournalEntry } from '../features/journal/api';
 import { supabase } from '../lib/supabase';
 // import { decisionsApi } from '../features/decisions/api'; // Decisions usually fetched via meetings, but let's see if we can fetch all.
 import { TagManager } from '../features/tags/TagManager';
-import { Save, FileText, Settings as SettingsIcon, Tag as TagIcon, Download, Database } from 'lucide-react';
+import { Save, FileText, Settings as SettingsIcon, Tag as TagIcon, Download, Database, Upload } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -29,6 +29,7 @@ export default function SettingsPage() {
     );
     const [isExporting, setIsExporting] = useState(false);
     const [isBackingUp, setIsBackingUp] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
 
     useEffect(() => {
         loadSettings();
@@ -77,22 +78,19 @@ export default function SettingsPage() {
         if (!user) return;
         setIsBackingUp(true);
         try {
-            const results = await Promise.all([
-                supabase.from('settings').select('*').eq('user_id', user.id),
-                supabase.from('actions').select('*').eq('user_id', user.id),
-                supabase.from('meetings').select('*').eq('user_id', user.id),
-                supabase.from('journal_entries').select('*').eq('user_id', user.id),
-                supabase.from('tags').select('*').eq('user_id', user.id),
-                supabase.from('time_entries').select('*').eq('user_id', user.id),
-                supabase.from('knowledge_pages').select('*').eq('user_id', user.id),
-                supabase.from('decisions').select('*').eq('user_id', user.id)
-            ]);
+            const tables = ['settings', 'actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
 
-            // Check for errors
-            const errors = results.filter(r => r.error);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const promises = tables.map(table => supabase.from(table as any).select('*').eq('user_id', user.id));
+
+            const results = await Promise.all(promises);
+
+            const errors = results.map((r, index) => r.error ? { table: tables[index], error: r.error } : null).filter(Boolean);
+
             if (errors.length > 0) {
                 console.error('Backup errors:', errors);
-                throw new Error('Some data could not be fetched.');
+                alert(`Backup failed for tables: ${errors.map(e => e?.table).join(', ')}. Check console for details.`);
+                throw new Error('Backup incomplete');
             }
 
             const backupData = {
@@ -123,10 +121,67 @@ export default function SettingsPage() {
 
         } catch (error) {
             console.error('Backup failed:', error);
-            alert('Failed to generate backup.');
+            // alert handled above for specific errors, or generic for others
+            if ((error as Error).message !== 'Backup incomplete') {
+                alert('Failed to generate backup: ' + (error as Error).message);
+            }
         } finally {
             setIsBackingUp(false);
         }
+    };
+
+    const handleImportBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !user) return;
+
+        if (!confirm('CAUTION: This will restore data from the backup. Existing records with the same ID will be updated. New records will be created. \n\nAre you sure you want to proceed?')) {
+            event.target.value = ''; // reset
+            return;
+        }
+
+        setIsRestoring(true);
+        const reader = new FileReader();
+
+        reader.onload = async (e) => {
+            try {
+                const json = JSON.parse(e.target?.result as string);
+                if (!json.data || !json.version) throw new Error('Invalid backup file format');
+
+                const { data } = json;
+
+                // Restore in dependency order
+                const steps = [
+                    { table: 'settings', data: data.settings },
+                    { table: 'tags', data: data.tags },
+                    { table: 'knowledge_pages', data: data.knowledge_pages },
+                    { table: 'meetings', data: data.meetings },
+                    { table: 'actions', data: data.actions },
+                    { table: 'journal_entries', data: data.journal_entries },
+                    { table: 'time_entries', data: data.time_entries },
+                    { table: 'decisions', data: data.decisions }
+                ];
+
+                for (const step of steps) {
+                    if (step.data && step.data.length > 0) {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const { error } = await supabase.from(step.table as any).upsert(step.data);
+                        if (error) throw new Error(`Failed to restore ${step.table}: ${error.message}`);
+                    }
+                }
+
+                alert('Backup restored successfully! The page will now reload.');
+                window.location.reload();
+
+            } catch (error) {
+                console.error('Restore failed:', error);
+                alert('Restore failed: ' + (error as Error).message);
+            } finally {
+                setIsRestoring(false);
+                event.target.value = '';
+            }
+        };
+
+        reader.readAsText(file);
     };
 
     const handleExportJournal = async () => {
@@ -311,6 +366,33 @@ export default function SettingsPage() {
                             </>
                         )}
                     </button>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-t border-border pt-4">
+                    <div>
+                        <h3 className="font-medium text-lg">Restore Data</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Upload a previously exported JSON backup file to restore your data.
+                            <br />
+                            <span className="text-amber-500 font-bold">Warning: This will overwrite existing records with matching IDs.</span>
+                        </p>
+                    </div>
+                    <label className={`flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-2 rounded-md font-medium cursor-pointer hover:bg-destructive/90 ${isRestoring ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {isRestoring ? (
+                            'Restoring...'
+                        ) : (
+                            <>
+                                <Upload className="h-4 w-4" /> Upload Backup
+                            </>
+                        )}
+                        <input
+                            type="file"
+                            accept=".json"
+                            className="hidden"
+                            onChange={handleImportBackup}
+                            disabled={isRestoring}
+                        />
+                    </label>
                 </div>
             </section>
 
