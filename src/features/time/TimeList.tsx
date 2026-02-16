@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { timeApi, type TimeEntry, type NewTimeEntry } from './api';
 import { settingsApi, type Settings } from '../settings/api';
 import { TimeForm } from './TimeForm';
-import { Plus, CheckSquare, Clock, Briefcase, Sun, AlertCircle, TrendingUp } from 'lucide-react';
+import { TimeReporting } from './TimeReporting';
+import { Plus, CheckSquare, Clock, Briefcase, Sun, AlertCircle, TrendingUp, RefreshCw } from 'lucide-react';
 import { actionsApi, type Action } from '../actions/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { eachDayOfInterval, startOfMonth, endOfMonth, parseISO, isWeekend } from 'date-fns';
@@ -13,6 +14,7 @@ export function TimeList() {
     const [settings, setSettings] = useState<Settings | null>(null);
     const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isReportOpen, setIsReportOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<TimeEntry | undefined>(undefined);
     const { user } = useAuth();
 
@@ -45,15 +47,27 @@ export function TimeList() {
 
     const handleCreate = async (data: NewTimeEntry) => {
         if (!user) return;
-        await timeApi.createEntry({ ...data, user_id: user.id });
-        loadData();
+        try {
+            await timeApi.createEntry({ ...data, user_id: user.id });
+            alert('Time entry saved successfully.');
+            loadData();
+        } catch (e) {
+            console.error(e);
+            alert('Error saving entry.');
+        }
     };
 
     const handleUpdate = async (data: NewTimeEntry) => {
         if (!editingEntry) return;
-        await timeApi.updateEntry(editingEntry.id, data);
-        loadData();
-        setEditingEntry(undefined);
+        try {
+            await timeApi.updateEntry(editingEntry.id, data);
+            alert('Time entry updated successfully.');
+            loadData();
+            setEditingEntry(undefined);
+        } catch (e) {
+            console.error(e);
+            alert('Error updating entry.');
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -134,13 +148,28 @@ export function TimeList() {
                         </p>
                     )}
                 </div>
-                <button
-                    onClick={() => setIsFormOpen(true)}
-                    className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Log Time
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => loadData()}
+                        className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+                        title="Refresh Data"
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                    </button>
+                    <button
+                        onClick={() => setIsReportOpen(true)}
+                        className="inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium shadow hover:bg-secondary/80"
+                    >
+                        <TrendingUp className="mr-2 h-4 w-4" /> Yearly Overview
+                    </button>
+                    <button
+                        onClick={() => setIsFormOpen(true)}
+                        className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Log Time
+                    </button>
+                </div>
             </div>
 
             {/* Date Filter */}
@@ -285,6 +314,12 @@ export function TimeList() {
                 initialData={editingEntry}
                 onSubmit={editingEntry ? handleUpdate : handleCreate}
                 onCancel={closeForm}
+            />
+
+            <TimeReporting
+                isOpen={isReportOpen}
+                onClose={() => setIsReportOpen(false)}
+                settings={settings}
             />
         </div>
     );
