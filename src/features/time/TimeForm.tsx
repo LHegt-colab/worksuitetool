@@ -123,7 +123,8 @@ export function TimeForm({ initialData, onSubmit, onCancel, isOpen }: TimeFormPr
             onCancel();
         } catch (error) {
             console.error('Error submitting time entry:', error);
-            alert('Failed to save time entry');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            alert(`Failed to save time entry: ${(error as any).message || 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
