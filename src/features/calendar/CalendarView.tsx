@@ -158,17 +158,17 @@ export function CalendarView() {
         const firstTag = itemTags.length > 0 ? tags.find(t => t.name === itemTags[0]) : null;
 
         // Default Colors
-        // Meeting: Blue
-        // Action: Green
+        // Meeting: Blue (#3b82f6)
+        // Action: Green (#22c55e)
         const isMeeting = 'date_time' in item;
-        const defaultColor = isMeeting ? '#3b82f6' : '#22c55e'; // blue-500 : green-500
+        const defaultColor = isMeeting ? '#3b82f6' : '#22c55e';
 
         const color = firstTag?.color || defaultColor;
 
         return {
-            backgroundColor: `${color}20`, // 12% opacity (approx bg-X-100)
-            borderColor: `${color}60`,    // 37% opacity (approx border-X-300)
-            color: color,                 // Text color
+            background: `color-mix(in srgb, ${color}, transparent 85%)`, // Modern CSS for nice tint
+            borderLeft: `3px solid ${color}`, // Strong visual indicator
+            color: 'inherit', // Let parent text color apply (or set specific if needed)
         };
     };
 
@@ -324,7 +324,8 @@ export function CalendarView() {
                                                 if (isMeeting) openEditMeeting(item as Meeting);
                                                 else openEditAction(item as Action);
                                             }}
-                                            className="rounded px-1.5 py-1 text-xs border truncate flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                                            // Changed classes: Removed bg/border colors, added explicit text color
+                                            className="rounded-sm mb-1 px-1.5 py-1 text-xs truncate flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity text-foreground font-medium"
                                             style={style}
                                         >
                                             {isMeeting ? <Clock className="h-3 w-3" /> : <CheckSquare className="h-3 w-3" />}
@@ -395,7 +396,8 @@ export function CalendarView() {
                                                     e.stopPropagation();
                                                     openEditAction(action);
                                                 }}
-                                                className="text-xs rounded px-1 py-0.5 border truncate flex items-center gap-1 cursor-pointer hover:opacity-80"
+                                                // Removed hardcoded green classes
+                                                className="text-xs rounded-sm mb-1 px-1 py-0.5 truncate flex items-center gap-1 cursor-pointer hover:opacity-80 text-foreground font-medium"
                                                 style={style}
                                             >
                                                 <CheckSquare className="h-3 w-3 shrink-0" />
@@ -450,7 +452,8 @@ export function CalendarView() {
                                                             e.stopPropagation();
                                                             openEditMeeting(meeting);
                                                         }}
-                                                        className="absolute left-1 right-1 rounded p-1 text-xs border overflow-hidden cursor-pointer hover:shadow-md z-10 hover:opacity-90"
+                                                        // Removed hardcoded blue classes
+                                                        className="absolute left-1 right-1 rounded-sm p-1 text-xs overflow-hidden cursor-pointer hover:shadow-md z-10 hover:opacity-90 text-foreground font-medium"
                                                         style={{ top, height, minHeight: '30px', ...style }}
                                                     >
                                                         <div className="font-semibold">{periodString(dt)}</div>
