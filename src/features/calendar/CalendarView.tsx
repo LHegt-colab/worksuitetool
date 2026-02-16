@@ -174,12 +174,21 @@ export function CalendarView() {
 
     // Helper: Get Color for Item
     const getItemStyle = (item: Meeting | Action) => {
-        const itemTags = item.tags || [];
+        // Prioritize label_ids (Source of Truth)
+        let matchedTags: Tag[] = [];
 
-        // Find all tag objects that match the item's tag names
-        const matchedTags = itemTags
-            .map(tagName => tags.find(t => t.name === tagName))
-            .filter((t): t is Tag => !!t); // Filter out undefined
+        if (item.label_ids && item.label_ids.length > 0) {
+            matchedTags = item.label_ids
+                .map(id => tags.find(t => t.id === id))
+                .filter((t): t is Tag => !!t);
+        }
+
+        // Fallback to tag names if label_ids are missing/empty
+        if (matchedTags.length === 0 && item.tags && item.tags.length > 0) {
+            matchedTags = item.tags
+                .map(tagName => tags.find(t => t.name === tagName))
+                .filter((t): t is Tag => !!t);
+        }
 
         // Default Colors
         const isMeeting = 'date_time' in item;
@@ -193,8 +202,6 @@ export function CalendarView() {
 
         if (matchedTags.length > 0) {
             // Sort by saturation descending. 
-            // If saturations matches (or is very close), keep original order (which effectively prioritizes 'later' ones if we used a stable sort, but here we just want the 'best' one).
-            // Actually, let's pick the "Best" one.
             const sortedTags = matchedTags.map(t => ({
                 tag: t,
                 sat: getSaturation(t.color || '#000000')
@@ -202,14 +209,11 @@ export function CalendarView() {
 
             // Use the most saturated tag's color
             selectedColor = sortedTags[0].tag.color || defaultColor;
-
-            // Edge case: If the most saturated color is still very dull (e.g. all grays), it will just pick the "least gray" gray. 
-            // But if one is Green (sat ~1.0) and one is Dark Blue (sat ~0.3), Green wins.
         }
 
         return {
             background: `color-mix(in srgb, ${selectedColor}, transparent 85%)`,
-            borderLeft: `4px solid ${selectedColor}`, // Increased from 3px to 4px for better visibility
+            borderLeft: `5px solid ${selectedColor}`, // Increased to 5px
             color: 'inherit',
         };
     };
