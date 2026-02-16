@@ -78,41 +78,40 @@ export default function SettingsPage() {
         if (!user) return;
         setIsBackingUp(true);
         try {
-            // Use specific queries for each table
-            // We use Promise.all because Supabase client doesn't throw on query errors, it returns { data, error }
-            const results = await Promise.all([
-                supabase.from('settings').select('*').eq('user_id', user.id),
-                supabase.from('actions').select('*').eq('user_id', user.id),
-                supabase.from('meetings').select('*').eq('user_id', user.id),
-                supabase.from('journal_entries').select('*').eq('user_id', user.id),
-                supabase.from('tags').select('*').eq('user_id', user.id),
-                supabase.from('time_entries').select('*').eq('user_id', user.id),
-                supabase.from('knowledge_pages').select('*').eq('user_id', user.id),
-                supabase.from('decisions').select('*').eq('user_id', user.id)
-            ]);
+            // 1. Fetch settings using the API which we know works
+            const settingsData = await settingsApi.getSettings();
 
-            const keys = ['settings', 'actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
+            // 2. Fetch other tables
+            const tables = ['actions', 'meetings', 'journal_entries', 'tags', 'time_entries', 'knowledge_pages', 'decisions'];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const promises = tables.map(table => supabase.from(table as any).select('*').eq('user_id', user.id));
+
+            const results = await Promise.all(promises);
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const dataMap: Record<string, any[]> = {};
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const errors: { table: string, error: any }[] = [];
 
+            // Add settings
+            if (settingsData) {
+                dataMap['settings'] = [settingsData];
+            } else {
+                // If null (no settings yet), just empty array
+                dataMap['settings'] = [];
+            }
+
+            // Process other results
             results.forEach((result, index) => {
-                const key = keys[index];
+                const key = tables[index];
                 if (result.error) {
                     console.error(`Error backing up ${key}:`, result.error);
                     errors.push({ table: key, error: result.error });
-                    dataMap[key] = []; // Fallback to empty array
+                    dataMap[key] = [];
                 } else {
                     dataMap[key] = result.data || [];
                 }
             });
-
-            if (errors.length > 0) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const errorMsg = `Backup completed with WARNINGS.\n\nThe following tables could not be exported (likely empty or access denied):\n${errors.map(e => `- ${e.table}: ${(e.error as any)?.message || 'Unknown error'}`).join('\n')}\n\nThe backup file contains all other available data.`;
-                alert(errorMsg);
-            }
 
             const backupData = {
                 timestamp: new Date().toISOString(),
@@ -121,15 +120,25 @@ export default function SettingsPage() {
                 data: dataMap
             };
 
+            // 3. Generate and Download
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `worksuitetool_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `worksuitetool_backup_${new Date().toISOString().split('T')[0]}_${new Date().getTime()}.json`; // Added timestamp for uniqueness
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+
+            // 4. Show warnings AFTER download starts
+            if (errors.length > 0) {
+                setTimeout(() => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const errorMsg = `Backup file downloaded with WARNINGS.\n\nThe following tables could not be exported:\n${errors.map(e => `- ${e.table}: ${(e.error as any)?.message || 'Unknown error'}`).join('\n')}\n\nAll other data is included in the file.`;
+                    alert(errorMsg);
+                }, 500);
+            }
 
         } catch (error) {
             console.error('Backup CRITICAL failure:', error);
