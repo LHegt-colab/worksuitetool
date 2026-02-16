@@ -24,21 +24,34 @@ export function TimeList() {
     const [endDate, setEndDate] = useState(format(endOfMonth(now), 'yyyy-MM-dd'));
 
     const loadData = useCallback(async () => {
+        setLoading(true);
+
+        // Load Time Entries (Critical)
         try {
-            setLoading(true);
-            const [entriesData, actionsData, settingsData] = await Promise.all([
-                timeApi.getEntries(startDate, endDate),
-                actionsApi.getActions(),
-                settingsApi.getSettings()
-            ]);
+            const entriesData = await timeApi.getEntries(startDate, endDate);
             setEntries(entriesData || []);
+        } catch (error) {
+            console.error('Failed to load time entries:', error);
+            // Don't alert here to avoid spamming, just log
+        }
+
+        // Load Actions (Non-critical)
+        try {
+            const actionsData = await actionsApi.getActions();
             setActions(actionsData || []);
+        } catch (error) {
+            console.error('Failed to load actions:', error);
+        }
+
+        // Load Settings (Non-critical)
+        try {
+            const settingsData = await settingsApi.getSettings();
             setSettings(settingsData);
         } catch (error) {
-            console.error('Failed to load time data:', error);
-        } finally {
-            setLoading(false);
+            console.error('Failed to load settings:', error);
         }
+
+        setLoading(false);
     }, [startDate, endDate]);
 
     useEffect(() => {
