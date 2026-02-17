@@ -31,6 +31,7 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
     // Local state
     const [datePart, setDatePart] = useState('');
     const [timePart, setTimePart] = useState('');
+    const [endTimePart, setEndTimePart] = useState('');
     const [loading, setLoading] = useState(false);
 
     // Sub-items state
@@ -47,9 +48,19 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
             setDatePart(dt.toISOString().split('T')[0]);
             setTimePart(dt.toTimeString().slice(0, 5));
 
+            if (initialData.end_time) {
+                const et = new Date(initialData.end_time);
+                setEndTimePart(et.toTimeString().slice(0, 5));
+            } else {
+                // Default to 1 hour after start
+                const et = new Date(dt.getTime() + 60 * 60 * 1000);
+                setEndTimePart(et.toTimeString().slice(0, 5));
+            }
+
             setFormData({
                 title: initialData.title,
                 date_time: initialData.date_time,
+                end_time: initialData.end_time || null,
                 location: initialData.location || '',
                 participants: initialData.participants || '',
                 notes: initialData.notes || '',
@@ -62,12 +73,19 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
             loadSubItems(initialData.id);
         } else {
             const now = new Date();
+            // Round up to next 30 min slot for UX
+            now.setMinutes(Math.ceil(now.getMinutes() / 30) * 30, 0, 0);
+
             setDatePart(now.toISOString().split('T')[0]);
             setTimePart(now.toTimeString().slice(0, 5));
+
+            const end = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour duration default
+            setEndTimePart(end.toTimeString().slice(0, 5));
 
             setFormData({
                 title: '',
                 date_time: now.toISOString(),
+                end_time: end.toISOString(),
                 location: '',
                 participants: '',
                 notes: '',
@@ -98,10 +116,20 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
         e.preventDefault();
         setLoading(true);
         try {
-            const combinedDateTime = new Date(`${datePart}T${timePart}:00`).toISOString();
+            const startDateTime = new Date(`${datePart}T${timePart}:00`);
+            const endDateTime = new Date(`${datePart}T${endTimePart}:00`);
+
+            // Validate
+            if (endDateTime <= startDateTime) {
+                alert('End time must be after start time');
+                setLoading(false);
+                return;
+            }
+
             await onSubmit({
                 ...formData,
-                date_time: combinedDateTime,
+                date_time: startDateTime.toISOString(),
+                end_time: endDateTime.toISOString(),
             });
             onCancel();
         } catch (error) {
@@ -186,7 +214,7 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-foreground">Date</label>
                                     <input
@@ -198,12 +226,25 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-foreground">Time</label>
+                                    <label className="block text-sm font-medium text-foreground">Start</label>
                                     <input
                                         type="time"
                                         required
                                         value={timePart}
-                                        onChange={(e) => setTimePart(e.target.value)}
+                                        onChange={(e) => {
+                                            setTimePart(e.target.value);
+                                            // Optional: Auto-update end time if needed, keeping simple for now
+                                        }}
+                                        className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-foreground">End</label>
+                                    <input
+                                        type="time"
+                                        required
+                                        value={endTimePart}
+                                        onChange={(e) => setEndTimePart(e.target.value)}
                                         className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
                                     />
                                 </div>

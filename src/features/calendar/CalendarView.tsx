@@ -509,7 +509,16 @@ export function CalendarView() {
                                                 const dt = parseISO(meeting.date_time);
                                                 const startMinutes = dt.getHours() * 60 + dt.getMinutes();
                                                 const top = (startMinutes / 60) * CELL_HEIGHT;
-                                                const height = CELL_HEIGHT; // Default 1 hour duration
+
+                                                // Calculate Height
+                                                let durationMinutes = 60; // Default 1 hour
+                                                if (meeting.end_time) {
+                                                    const endTime = parseISO(meeting.end_time);
+                                                    durationMinutes = (endTime.getTime() - dt.getTime()) / (1000 * 60);
+                                                }
+                                                // Minimum height of 30 mins for visibility
+                                                const height = Math.max(30, durationMinutes) / 60 * CELL_HEIGHT;
+
                                                 const style = getItemStyle(meeting);
 
                                                 return (
@@ -523,7 +532,7 @@ export function CalendarView() {
                                                         className="absolute left-1 right-1 rounded-sm p-1 text-xs overflow-hidden cursor-pointer hover:shadow-md z-10 hover:opacity-90 text-foreground font-medium"
                                                         style={{ top, height, minHeight: '30px', ...style }}
                                                     >
-                                                        <div className="font-semibold">{periodString(dt)}</div>
+                                                        <div className="font-semibold">{periodString(dt)} - {meeting.end_time ? periodString(parseISO(meeting.end_time)) : ''}</div>
                                                         <div className="font-medium truncate">{meeting.title}</div>
                                                     </div>
                                                 );
