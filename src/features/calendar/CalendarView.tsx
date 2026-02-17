@@ -24,7 +24,7 @@ import {
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, CheckSquare, Plus } from 'lucide-react';
 import { actionsApi, type Action } from '../actions/api';
-import { meetingsApi, type Meeting } from '../meetings/api';
+import { meetingsApi, type Meeting, type NewMeeting } from '../meetings/api';
 import { tagsApi, type Tag } from '../tags/api';
 import { ActionForm } from '../actions/ActionForm';
 import { MeetingForm } from '../meetings/MeetingForm';
