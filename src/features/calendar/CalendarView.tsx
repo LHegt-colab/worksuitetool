@@ -576,6 +576,18 @@ export function CalendarView() {
 
     const periodString = (date: Date) => format(date, 'HH:mm');
 
+    const handleDeleteMeeting = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this meeting?')) return;
+        try {
+            await meetingsApi.deleteMeeting(id);
+            setIsMeetingFormOpen(false);
+            setEditingMeeting(undefined);
+            loadData();
+        } catch (error) {
+            console.error('Failed to delete meeting:', error);
+        }
+    };
+
     if (loading) return <div className="p-8 text-center text-muted-foreground">Loading calendar...</div>;
 
     return (
@@ -592,6 +604,7 @@ export function CalendarView() {
                 initialData={editingMeeting}
                 onCancel={closeMeetingForm}
                 onSubmit={editingMeeting ? handleUpdateMeeting : handleCreateMeeting}
+                onDelete={handleDeleteMeeting}
             />
 
             <ActionForm

@@ -12,10 +12,11 @@ interface MeetingFormProps {
     initialData?: Meeting;
     onSubmit: (data: NewMeeting) => Promise<void>;
     onCancel: () => void;
+    onDelete?: (id: string) => Promise<void>;
     isOpen: boolean;
 }
 
-export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: MeetingFormProps) {
+export function MeetingForm({ initialData, onSubmit, onCancel, onDelete, isOpen }: MeetingFormProps) {
     const { user } = useAuth();
     const [formData, setFormData] = useState<NewMeeting>({
         title: '',
@@ -26,6 +27,9 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
         decisions: '', // Legacy field, kept for compatibility but UI will focus on relation
         tags: [],
         label_ids: [],
+        recurrence_interval: null,
+        recurrence_unit: null,
+        recurrence_end_date: null,
     });
 
     // Local state
@@ -137,35 +141,43 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                 ...formData,
                 date_time: startDateTime.toISOString(),
                 end_time: endDateTime.toISOString(),
+                // Ensure recurrence interval is a number if present
+                recurrence_interval: formData.recurrence_interval ? Number(formData.recurrence_interval) : null,
             };
 
             const meetingsToCreate = [baseMeeting];
 
             // Handle Recurrence Generation (Only for new meetings)
             if (!initialData && formData.recurrence_unit && formData.recurrence_interval && formData.recurrence_end_date) {
+                const interval = Number(formData.recurrence_interval);
                 const endDate = new Date(formData.recurrence_end_date);
+                // Set end date to end of day to be inclusive
+                endDate.setHours(23, 59, 59, 999);
+
                 let nextStart = new Date(startDateTime);
                 let nextEnd = new Date(endDateTime);
                 const duration = nextEnd.getTime() - nextStart.getTime();
 
                 // Safety limit to prevent infinite loops (e.g. 500 instances max)
                 let count = 0;
-                const MAX_INSTANCES = 100;
+                const MAX_INSTANCES = 365; // Allow year-round daily meetings
 
                 while (true) {
                     // Calculate next date
                     if (formData.recurrence_unit === 'day') {
-                        nextStart.setDate(nextStart.getDate() + formData.recurrence_interval);
+                        nextStart.setDate(nextStart.getDate() + interval);
                     } else if (formData.recurrence_unit === 'week') {
-                        nextStart.setDate(nextStart.getDate() + (formData.recurrence_interval * 7));
+                        nextStart.setDate(nextStart.getDate() + (interval * 7));
                     } else if (formData.recurrence_unit === 'month') {
-                        nextStart.setMonth(nextStart.getMonth() + formData.recurrence_interval);
+                        nextStart.setMonth(nextStart.getMonth() + interval);
                     } else if (formData.recurrence_unit === 'year') {
-                        nextStart.setFullYear(nextStart.getFullYear() + formData.recurrence_interval);
+                        nextStart.setFullYear(nextStart.getFullYear() + interval);
                     }
 
+                    // Update nextEnd based on the new nextStart + duration
                     nextEnd = new Date(nextStart.getTime() + duration);
 
+                    // Check boundaries
                     if (nextStart > endDate || count >= MAX_INSTANCES) break;
 
                     meetingsToCreate.push({
@@ -301,7 +313,7 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                                 </div>
                             </div>
 
-                            {/* Recurrence Options - Only for new meetings to keep it simple for now */}
+                            {/* Recurrence Options - Only for new meetings */}
                             {!initialData && (
                                 <div className="space-y-2 border-t border-border pt-4">
                                     <h3 className="text-sm font-medium text-foreground">Recurrence</h3>
@@ -481,21 +493,35 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                         </div>
                     </div>
 
-                    <div className="mt-6 flex justify-end space-x-3 border-t border-border pt-4">
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                        >
-                            {loading ? 'Saving...' : initialData ? 'Update Meeting' : 'Create Meeting'}
-                        </button>
+                    <div className="mt-6 flex justify-between border-t border-border pt-4">
+                        <div>
+                            {initialData && onDelete && (
+                                <button
+                                    type="button"
+                                    onClick={() => onDelete(initialData.id)}
+                                    className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/20"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete Meeting
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex space-x-3">
+                            <button
+                                type="button"
+                                onClick={onCancel}
+                                className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                            >
+                                {loading ? 'Saving...' : initialData ? 'Update Meeting' : 'Create Meeting'}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
