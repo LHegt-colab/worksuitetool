@@ -521,6 +521,9 @@ export function CalendarView() {
 
                                                 const style = getItemStyle(meeting);
 
+                                                // Conditional Layout based on height/duration
+                                                const isShort = durationMinutes < 45;
+
                                                 return (
                                                     <div
                                                         key={meeting.id}
@@ -529,11 +532,22 @@ export function CalendarView() {
                                                             openEditMeeting(meeting);
                                                         }}
                                                         // Removed hardcoded blue classes
-                                                        className="absolute left-1 right-1 rounded-sm p-1 text-xs overflow-hidden cursor-pointer hover:shadow-md z-10 hover:opacity-90 text-foreground font-medium"
+                                                        className={`absolute left-1 right-1 rounded-sm p-1 overflow-hidden cursor-pointer hover:shadow-md z-10 hover:opacity-90 text-foreground font-medium flex flex-col justify-start ${isShort ? 'text-[10px] leading-tight' : 'text-xs'}`}
                                                         style={{ top, height, minHeight: '30px', ...style }}
                                                     >
-                                                        <div className="font-semibold">{periodString(dt)} - {meeting.end_time ? periodString(parseISO(meeting.end_time)) : ''}</div>
-                                                        <div className="font-medium truncate">{meeting.title}</div>
+                                                        {isShort ? (
+                                                            // Single line layout for short items
+                                                            <div className="flex items-center gap-1 w-full">
+                                                                <span className="font-bold shrink-0">{periodString(dt)}</span>
+                                                                <span className="truncate">{meeting.title}</span>
+                                                            </div>
+                                                        ) : (
+                                                            // Standard layout for normal items
+                                                            <>
+                                                                <div className="font-semibold">{periodString(dt)} - {meeting.end_time ? periodString(parseISO(meeting.end_time)) : ''}</div>
+                                                                <div className="font-medium truncate">{meeting.title}</div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 );
                                             })
