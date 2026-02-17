@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
 import {
     format,
     startOfWeek,
@@ -399,6 +400,21 @@ export function CalendarView() {
         const hours = Array.from({ length: 24 }, (_, i) => i);
         const CELL_HEIGHT = 60; // px per hour
 
+        // Ref for the scrollable container
+        const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+        // Auto-scroll to current time on mount or view change
+        useEffect(() => {
+            if (scrollContainerRef.current) {
+                const now = new Date();
+                const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+                // Scroll to 1 hour before current time for context, or 0 if early morning
+                const targetScroll = Math.max(0, (minutesSinceMidnight - 60) / 60 * CELL_HEIGHT);
+
+                scrollContainerRef.current.scrollTop = targetScroll;
+            }
+        }, [view]); // Run when switching between day/week views
+
         return (
             <div className="flex flex-col flex-1 overflow-hidden bg-card border rounded-lg border-border">
                 {/* Header Row: Days */}
@@ -458,7 +474,10 @@ export function CalendarView() {
                 </div>
 
                 {/* Scrollable Time Grid */}
-                <div className="flex-1 overflow-y-auto relative bg-background">
+                <div
+                    ref={scrollContainerRef}
+                    className="flex-1 overflow-y-auto relative bg-background"
+                >
                     <div className="flex h-[1440px]"> {/* 24h * 60px */}
 
                         {/* Time labels Sidebar */}
