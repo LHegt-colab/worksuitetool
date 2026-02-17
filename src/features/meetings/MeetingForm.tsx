@@ -335,8 +335,17 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                                             <label className="block text-xs text-muted-foreground">End Date</label>
                                             <input
                                                 type="date"
-                                                value={formData.recurrence_end_date ? formData.recurrence_end_date.split('T')[0] : ''}
-                                                onChange={(e) => setFormData({ ...formData, recurrence_end_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                                                required={!!formData.recurrence_interval} // Required if recurrence is active
+                                                value={formData.recurrence_end_date ? new Date(formData.recurrence_end_date).toLocaleDateString('en-CA') : ''} // YYYY-MM-DD format safe
+                                                onChange={(e) => {
+                                                    if (!e.target.value) {
+                                                        setFormData({ ...formData, recurrence_end_date: null });
+                                                        return;
+                                                    }
+                                                    // Set to end of day local time to ensure inclusivity
+                                                    const date = new Date(e.target.value + 'T23:59:59');
+                                                    setFormData({ ...formData, recurrence_end_date: date.toISOString() });
+                                                }}
                                                 className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                             />
                                         </div>
