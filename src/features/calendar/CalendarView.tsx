@@ -107,9 +107,11 @@ export function CalendarView() {
         }
     };
 
-    const handleCreateMeeting = async (data: any) => {
+    const handleCreateMeeting = async (data: NewMeeting) => {
         try {
-            await meetingsApi.createMeeting(data);
+            // data can be array or single object now due to bulk creation support
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await meetingsApi.createMeeting(data as any);
             setIsMeetingFormOpen(false);
             loadData();
         } catch (error) {

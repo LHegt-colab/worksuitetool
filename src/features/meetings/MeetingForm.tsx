@@ -67,6 +67,9 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                 decisions: initialData.decisions || '',
                 tags: initialData.tags || [],
                 label_ids: initialData.label_ids || [],
+                recurrence_interval: initialData.recurrence_interval || null,
+                recurrence_unit: initialData.recurrence_unit || null,
+                recurrence_end_date: initialData.recurrence_end_date || null,
             });
 
             // Load sub-items
@@ -92,6 +95,9 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                 decisions: '',
                 tags: [],
                 label_ids: [],
+                recurrence_interval: null,
+                recurrence_unit: null,
+                recurrence_end_date: null,
             });
             setDecisionsList([]);
             setActionsList([]);
@@ -126,11 +132,56 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                 return;
             }
 
-            await onSubmit({
+            // Base meeting object
+            const baseMeeting = {
                 ...formData,
                 date_time: startDateTime.toISOString(),
                 end_time: endDateTime.toISOString(),
-            });
+            };
+
+            const meetingsToCreate = [baseMeeting];
+
+            // Handle Recurrence Generation (Only for new meetings)
+            if (!initialData && formData.recurrence_unit && formData.recurrence_interval && formData.recurrence_end_date) {
+                const endDate = new Date(formData.recurrence_end_date);
+                let nextStart = new Date(startDateTime);
+                let nextEnd = new Date(endDateTime);
+                const duration = nextEnd.getTime() - nextStart.getTime();
+
+                // Safety limit to prevent infinite loops (e.g. 500 instances max)
+                let count = 0;
+                const MAX_INSTANCES = 100;
+
+                while (true) {
+                    // Calculate next date
+                    if (formData.recurrence_unit === 'day') {
+                        nextStart.setDate(nextStart.getDate() + formData.recurrence_interval);
+                    } else if (formData.recurrence_unit === 'week') {
+                        nextStart.setDate(nextStart.getDate() + (formData.recurrence_interval * 7));
+                    } else if (formData.recurrence_unit === 'month') {
+                        nextStart.setMonth(nextStart.getMonth() + formData.recurrence_interval);
+                    } else if (formData.recurrence_unit === 'year') {
+                        nextStart.setFullYear(nextStart.getFullYear() + formData.recurrence_interval);
+                    }
+
+                    nextEnd = new Date(nextStart.getTime() + duration);
+
+                    if (nextStart > endDate || count >= MAX_INSTANCES) break;
+
+                    meetingsToCreate.push({
+                        ...baseMeeting,
+                        date_time: nextStart.toISOString(),
+                        end_time: nextEnd.toISOString(),
+                    });
+                    count++;
+                }
+            }
+
+            // Pass single object or array to onSubmit
+            // NOTE: We need to cast to any here because we are modifying the contract of onSubmit implicitly
+            // The parent component (CalendarView) needs to handle this.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await onSubmit(meetingsToCreate as any);
             onCancel();
         } catch (error) {
             console.error('Error submitting meeting:', error);
@@ -249,6 +300,52 @@ export function MeetingForm({ initialData, onSubmit, onCancel, isOpen }: Meeting
                                     />
                                 </div>
                             </div>
+
+                            {/* Recurrence Options - Only for new meetings to keep it simple for now */}
+                            {!initialData && (
+                                <div className="space-y-2 border-t border-border pt-4">
+                                    <h3 className="text-sm font-medium text-foreground">Recurrence</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-xs text-muted-foreground">Every</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={formData.recurrence_interval || ''}
+                                                onChange={(e) => setFormData({ ...formData, recurrence_interval: parseInt(e.target.value) || null })}
+                                                placeholder="1"
+                                                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-muted-foreground">Unit</label>
+                                            <select
+                                                value={formData.recurrence_unit || ''}
+                                                onChange={(e) => setFormData({ ...formData, recurrence_unit: e.target.value || null })}
+                                                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            >
+                                                <option value="">None</option>
+                                                <option value="day">Day(s)</option>
+                                                <option value="week">Week(s)</option>
+                                                <option value="month">Month(s)</option>
+                                                <option value="year">Year(s)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-muted-foreground">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={formData.recurrence_end_date ? formData.recurrence_end_date.split('T')[0] : ''}
+                                                onChange={(e) => setFormData({ ...formData, recurrence_end_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                                                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Recurring meetings will be created immediately for the entire period.
+                                    </p>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-foreground">Location</label>

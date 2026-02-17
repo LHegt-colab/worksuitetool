@@ -19,6 +19,7 @@ export function ActionList() {
 
     // Filtering state
     const [statusFilter, setStatusFilter] = useState<string>('All');
+    const [tagFilter, setTagFilter] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
 
     const loadData = async () => {
@@ -49,6 +50,59 @@ export function ActionList() {
 
     const handleUpdate = async (data: NewAction) => {
         if (!editingAction) return;
+
+        // Handle Recurring Actions
+        if (data.status === 'Done' && editingAction.status !== 'Done') {
+            const interval = data.recurrence_interval ?? editingAction.recurrence_interval;
+            const unit = data.recurrence_unit ?? editingAction.recurrence_unit;
+            const recurrenceEndDate = data.recurrence_end_date ?? editingAction.recurrence_end_date;
+
+            if (interval && unit) {
+                const calculateNextDate = (dateStr: string | null) => {
+                    if (!dateStr) return null;
+                    const date = new Date(dateStr);
+                    if (unit === 'day') date.setDate(date.getDate() + interval);
+                    if (unit === 'week') date.setDate(date.getDate() + (interval * 7));
+                    if (unit === 'month') date.setMonth(date.getMonth() + interval);
+                    if (unit === 'year') date.setFullYear(date.getFullYear() + interval);
+                    return date;
+                };
+
+                const nextStartDate = calculateNextDate(data.start_date || editingAction.start_date);
+                const nextDueDate = calculateNextDate(data.due_date || editingAction.due_date);
+
+                // Check if we passed the end date
+                let shouldCreate = true;
+                if (recurrenceEndDate) {
+                    const endDate = new Date(recurrenceEndDate);
+                    // If start date exceeds end date, stops.
+                    if (nextStartDate && nextStartDate > endDate) shouldCreate = false;
+                    // If no start date but due date exceeds, stop? 
+                    else if (!nextStartDate && nextDueDate && nextDueDate > endDate) shouldCreate = false;
+                }
+
+                if (shouldCreate) {
+                    // Create next action
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { id, created_at, updated_at, ...baseAction } = editingAction;
+                    const nextAction: NewAction = {
+                        ...baseAction,
+                        ...data, // Access updated fields like title/desc if changed
+                        status: 'Open', // Reset status
+                        start_date: nextStartDate?.toISOString() || null,
+                        due_date: nextDueDate?.toISOString() || null,
+                        recurrence_interval: interval,
+                        recurrence_unit: unit,
+                        recurrence_end_date: recurrenceEndDate
+                    };
+
+                    // We fire and forget the creation of the next item, or await it.
+                    // Awaiting ensures it appears immediately on reload.
+                    await actionsApi.createAction(nextAction);
+                }
+            }
+        }
+
         await actionsApi.updateAction(editingAction.id, data);
         loadData();
         setEditingAction(undefined);
@@ -81,10 +135,13 @@ export function ActionList() {
         // 2. Filter by Status Dropdown
         const matchesStatus = statusFilter === 'All' || action.status === statusFilter;
 
-        // 3. Filter by Search Query
+        // 3. Filter by Tag Dropdown
+        const matchesTag = tagFilter === 'All' || (action.label_ids?.includes(tagFilter));
+
+        // 4. Filter by Search Query
         const matchesSearch = action.title.toLowerCase().includes(searchQuery.toLowerCase());
 
-        return matchesStatus && matchesSearch;
+        return matchesStatus && matchesSearch && matchesTag;
     });
 
     const getPriorityColor = (priority: string) => {
@@ -170,7 +227,21 @@ export function ActionList() {
                     />
                 </div>
                 <div className="flex items-center gap-2">
+                    {/* Tag Filter */}
                     <Filter className="h-4 w-4 text-muted-foreground" />
+                    <select
+                        className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring max-w-[150px]"
+                        value={tagFilter}
+                        onChange={(e) => setTagFilter(e.target.value)}
+                    >
+                        <option value="All">All Labels</option>
+                        {tags.map(tag => (
+                            <option key={tag.id} value={tag.id}>{tag.name}</option>
+                        ))}
+                    </select>
+
+                    <div className="w-px h-6 bg-border mx-1" />
+
                     <select
                         className="rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                         value={statusFilter}

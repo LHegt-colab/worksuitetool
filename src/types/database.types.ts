@@ -26,6 +26,9 @@ export interface Database {
                     // New fields
                     start_date: string | null
                     label_ids: string[] | null
+                    recurrence_interval: number | null
+                    recurrence_unit: string | null
+                    recurrence_end_date: string | null
                 }
                 Insert: {
                     id?: string
@@ -42,6 +45,9 @@ export interface Database {
                     is_focus?: boolean
                     start_date?: string | null
                     label_ids?: string[] | null
+                    recurrence_interval?: number | null
+                    recurrence_unit?: string | null
+                    recurrence_end_date?: string | null
                 }
                 Update: {
                     id?: string
@@ -58,6 +64,9 @@ export interface Database {
                     is_focus?: boolean
                     start_date?: string | null
                     label_ids?: string[] | null
+                    recurrence_interval?: number | null
+                    recurrence_unit?: string | null
+                    recurrence_end_date?: string | null
                 }
             }
             decisions: {
@@ -189,6 +198,9 @@ export interface Database {
                     updated_at: string
                     label_ids: string[] | null
                     end_time: string | null
+                    recurrence_interval: number | null
+                    recurrence_unit: string | null
+                    recurrence_end_date: string | null
                 }
                 Insert: {
                     id?: string
@@ -204,6 +216,9 @@ export interface Database {
                     updated_at?: string
                     label_ids?: string[] | null
                     end_time?: string | null
+                    recurrence_interval?: number | null
+                    recurrence_unit?: string | null
+                    recurrence_end_date?: string | null
                 }
                 Update: {
                     id?: string
@@ -219,6 +234,9 @@ export interface Database {
                     updated_at?: string
                     label_ids?: string[] | null
                     end_time?: string | null
+                    recurrence_interval?: number | null
+                    recurrence_unit?: string | null
+                    recurrence_end_date?: string | null
                 }
             }
             tags: {

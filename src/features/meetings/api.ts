@@ -27,20 +27,21 @@ export const meetingsApi = {
         return data;
     },
 
-    async createMeeting(meeting: NewMeeting) {
-        console.log('Creating meeting with payload:', meeting);
+    async createMeeting(meeting: NewMeeting | NewMeeting[]) {
+        console.log('Creating meeting(s) with payload:', meeting);
         const { data, error } = await supabase
             .from('meetings')
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .insert(meeting as any)
-            .select()
-            .single();
+            .select();
 
         if (error) {
             console.error('Supabase createMeeting error:', error);
             throw error;
         }
-        return data;
+
+        // Return single object if single input, else array
+        return Array.isArray(meeting) ? data : (data ? data[0] : null);
     },
 
     async updateMeeting(id: string, updates: UpdateMeeting) {

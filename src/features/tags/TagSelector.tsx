@@ -25,10 +25,14 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
 
     const toggleTag = (id: string) => {
         let newIds: string[];
+
+        // Enforce Single Selection Logic
         if (selectedTagIds.includes(id)) {
-            newIds = selectedTagIds.filter(tagId => tagId !== id);
+            // Allow deselecting the current tag
+            newIds = [];
         } else {
-            newIds = [...selectedTagIds, id];
+            // Selecting a new tag replaces the old one
+            newIds = [id];
         }
 
         // Map IDs to Names for synchronization

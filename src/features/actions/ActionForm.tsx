@@ -35,6 +35,9 @@ export function ActionForm({ initialData, onSubmit, onCancel, isOpen }: ActionFo
                 due_date: initialData.due_date ? initialData.due_date.split('T')[0] : '',
                 tags: initialData.tags || [],
                 label_ids: initialData.label_ids || [],
+                recurrence_interval: initialData.recurrence_interval || null,
+                recurrence_unit: initialData.recurrence_unit || null,
+                recurrence_end_date: initialData.recurrence_end_date || null,
             });
         } else {
             // Reset details when opening fresh
@@ -47,6 +50,9 @@ export function ActionForm({ initialData, onSubmit, onCancel, isOpen }: ActionFo
                 due_date: '',
                 tags: [],
                 label_ids: [],
+                recurrence_interval: null,
+                recurrence_unit: null,
+                recurrence_end_date: null,
             });
         }
     }, [initialData, isOpen]);
@@ -157,7 +163,46 @@ export function ActionForm({ initialData, onSubmit, onCancel, isOpen }: ActionFo
                         </div>
                     </div>
 
-
+                    {/* Recurrence Options */}
+                    <div className="space-y-2 border-t border-border pt-4">
+                        <h3 className="text-sm font-medium text-foreground">Recurrence</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-xs text-muted-foreground">Every</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={formData.recurrence_interval || ''}
+                                    onChange={(e) => setFormData({ ...formData, recurrence_interval: parseInt(e.target.value) || null })}
+                                    placeholder="1"
+                                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-muted-foreground">Unit</label>
+                                <select
+                                    value={formData.recurrence_unit || ''}
+                                    onChange={(e) => setFormData({ ...formData, recurrence_unit: e.target.value || null })}
+                                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                >
+                                    <option value="">None</option>
+                                    <option value="day">Day(s)</option>
+                                    <option value="week">Week(s)</option>
+                                    <option value="month">Month(s)</option>
+                                    <option value="year">Year(s)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs text-muted-foreground">End Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.recurrence_end_date ? formData.recurrence_end_date.split('T')[0] : ''}
+                                    onChange={(e) => setFormData({ ...formData, recurrence_end_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                                    className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
+                            </div>
+                        </div>
+                    </div>
 
                     <div>
                         <TagSelector
