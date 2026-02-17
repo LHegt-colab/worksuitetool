@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { actionsApi, type Action, type NewAction } from './api';
 import { ActionForm } from './ActionForm';
-import { Plus, Search, Filter, Calendar, Clock, CheckSquare } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, CheckSquare, ListTodo, Archive } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { tagsApi, type Tag } from '../tags/api';
@@ -13,6 +13,9 @@ export function ActionList() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAction, setEditingAction] = useState<Action | undefined>(undefined);
     const { user } = useAuth();
+
+    // View Mode: 'active' or 'completed'
+    const [viewMode, setViewMode] = useState<'active' | 'completed'>('active');
 
     // Filtering state
     const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -70,8 +73,17 @@ export function ActionList() {
 
     // Filter logic
     const filteredActions = actions.filter(action => {
+        // 1. Filter by View Mode (Active vs Completed)
+        const isCompleted = action.status === 'Done' || action.status === 'Archived';
+        if (viewMode === 'active' && isCompleted) return false;
+        if (viewMode === 'completed' && !isCompleted) return false;
+
+        // 2. Filter by Status Dropdown
         const matchesStatus = statusFilter === 'All' || action.status === statusFilter;
+
+        // 3. Filter by Search Query
         const matchesSearch = action.title.toLowerCase().includes(searchQuery.toLowerCase());
+
         return matchesStatus && matchesSearch;
     });
 
@@ -112,6 +124,40 @@ export function ActionList() {
                 </button>
             </div>
 
+            {/* View Mode Tabs */}
+            <div className="flex space-x-1 rounded-lg bg-muted p-1 w-fit">
+                <button
+                    onClick={() => {
+                        setViewMode('active');
+                        setStatusFilter('All'); // Reset filter when switching
+                    }}
+                    className={cn(
+                        "flex items-center rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        viewMode === 'active'
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                    )}
+                >
+                    <ListTodo className="mr-2 h-4 w-4" />
+                    Active
+                </button>
+                <button
+                    onClick={() => {
+                        setViewMode('completed');
+                        setStatusFilter('All'); // Reset filter when switching
+                    }}
+                    className={cn(
+                        "flex items-center rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        viewMode === 'completed'
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:bg-background/50 hover:text-foreground"
+                    )}
+                >
+                    <Archive className="mr-2 h-4 w-4" />
+                    Completed
+                </button>
+            </div>
+
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center bg-card p-4 rounded-lg border border-border shadow-sm">
                 <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -131,11 +177,18 @@ export function ActionList() {
                         onChange={(e) => setStatusFilter(e.target.value)}
                     >
                         <option value="All">All Status</option>
-                        <option value="Open">Open</option>
-                        <option value="Doing">Doing</option>
-                        <option value="Waiting">Waiting</option>
-                        <option value="Done">Done</option>
-                        <option value="Archived">Archived</option>
+                        {viewMode === 'active' ? (
+                            <>
+                                <option value="Open">Open</option>
+                                <option value="Doing">Doing</option>
+                                <option value="Waiting">Waiting</option>
+                            </>
+                        ) : (
+                            <>
+                                <option value="Done">Done</option>
+                                <option value="Archived">Archived</option>
+                            </>
+                        )}
                     </select>
                 </div>
             </div>

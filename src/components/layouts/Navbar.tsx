@@ -1,12 +1,23 @@
 import { useTheme } from '../../contexts/ThemeContext';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Menu } from 'lucide-react';
 
-export function Navbar() {
+interface NavbarProps {
+    onMenuClick: () => void;
+}
+
+export function Navbar({ onMenuClick }: NavbarProps) {
     const { theme, setTheme } = useTheme();
 
     return (
         <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6">
-            <div className="flex items-center">
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={onMenuClick}
+                    className="md:hidden rounded-md p-2 text-muted-foreground hover:bg-muted focus:outline-none"
+                    title="Open Menu"
+                >
+                    <Menu className="h-5 w-5" />
+                </button>
                 {/* Breadcrumbs or Page Title could go here */}
             </div>
 
