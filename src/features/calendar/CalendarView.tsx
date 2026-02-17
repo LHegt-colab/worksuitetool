@@ -52,7 +52,7 @@ export function CalendarView() {
 
     // Auto-scroll to current time on mount or view change
     useEffect(() => {
-        if ((view === 'day' || view === 'week') && scrollContainerRef.current) {
+        if (!loading && (view === 'day' || view === 'week') && scrollContainerRef.current) {
             const now = new Date();
             const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
             const CELL_HEIGHT = 60; // Helper constant needed here too, or just hardcode/move constant up
@@ -61,7 +61,7 @@ export function CalendarView() {
 
             scrollContainerRef.current.scrollTop = targetScroll;
         }
-    }, [view]);
+    }, [view, loading]);
 
     const loadData = async () => {
         try {
