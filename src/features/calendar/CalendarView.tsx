@@ -47,6 +47,22 @@ export function CalendarView() {
     const [editingMeeting, setEditingMeeting] = useState<Meeting | undefined>(undefined);
     const [editingAction, setEditingAction] = useState<Action | undefined>(undefined);
 
+    // Ref for the scrollable container
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to current time on mount or view change
+    useEffect(() => {
+        if ((view === 'day' || view === 'week') && scrollContainerRef.current) {
+            const now = new Date();
+            const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+            const CELL_HEIGHT = 60; // Helper constant needed here too, or just hardcode/move constant up
+            // Scroll to 1 hour before current time for context, or 0 if early morning
+            const targetScroll = Math.max(0, (minutesSinceMidnight - 60) / 60 * CELL_HEIGHT);
+
+            scrollContainerRef.current.scrollTop = targetScroll;
+        }
+    }, [view]);
+
     const loadData = async () => {
         try {
             setLoading(true);
@@ -400,20 +416,6 @@ export function CalendarView() {
         const hours = Array.from({ length: 24 }, (_, i) => i);
         const CELL_HEIGHT = 60; // px per hour
 
-        // Ref for the scrollable container
-        const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-        // Auto-scroll to current time on mount or view change
-        useEffect(() => {
-            if (scrollContainerRef.current) {
-                const now = new Date();
-                const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
-                // Scroll to 1 hour before current time for context, or 0 if early morning
-                const targetScroll = Math.max(0, (minutesSinceMidnight - 60) / 60 * CELL_HEIGHT);
-
-                scrollContainerRef.current.scrollTop = targetScroll;
-            }
-        }, [view]); // Run when switching between day/week views
 
         return (
             <div className="flex flex-col flex-1 overflow-hidden bg-card border rounded-lg border-border">
