@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, Filter, Printer, Tag as TagIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Search, Calendar, Filter, Printer, ChevronDown, ChevronRight } from 'lucide-react';
 import { journalApi, type JournalEntry } from './api';
 import { tagsApi, type Tag } from '../tags/api';
 import { JournalForm } from './JournalForm';
-import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, parseISO, subMonths } from 'date-fns';
 
 export function JournalList() {
     const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -272,13 +272,12 @@ export function JournalList() {
                                 )}
 
                                 {/* Linked Items (Meetings/Actions) */}
-                                {(entry.meeting_id || entry.action_id) && (
-                                    // Fetch details could be done if we had them in context, for now just an indicator
+                                {(entry.meeting_ids?.length || entry.action_ids?.length) ? (
                                     <div className="flex gap-4 pt-2 border-t border-border/50 text-xs text-muted-foreground print:hidden">
-                                        {entry.meeting_id && <span className="flex items-center gap-1">Linked Meeting</span>}
-                                        {entry.action_id && <span className="flex items-center gap-1">Linked Action</span>}
+                                        {(entry.meeting_ids && entry.meeting_ids.length > 0) && <span className="flex items-center gap-1">Linked Meetings ({entry.meeting_ids.length})</span>}
+                                        {(entry.action_ids && entry.action_ids.length > 0) && <span className="flex items-center gap-1">Linked Actions ({entry.action_ids.length})</span>}
                                     </div>
-                                )}
+                                ) : null}
                             </div>
                         </div>
                     ))

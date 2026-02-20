@@ -12,9 +12,10 @@ interface JournalFormProps {
     onSubmit: (data: NewJournalEntry) => Promise<void>;
     onCancel: () => void;
     isOpen: boolean;
+    onDelete?: () => void;
 }
 
-export function JournalForm({ initialData, onSubmit, onCancel, isOpen }: JournalFormProps) {
+export function JournalForm({ initialData, onSubmit, onCancel, isOpen, onDelete }: JournalFormProps) {
     const { user } = useAuth();
     const [formData, setFormData] = useState<NewJournalEntry>({
         title: '',
@@ -111,9 +112,16 @@ export function JournalForm({ initialData, onSubmit, onCancel, isOpen }: Journal
                     <h2 className="text-xl font-semibold text-card-foreground">
                         {initialData ? 'Edit Entry' : 'New Entry'}
                     </h2>
-                    <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
-                        <X className="h-5 w-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {onDelete && initialData && (
+                            <button onClick={onDelete} type="button" className="text-sm font-medium text-destructive hover:underline px-2">
+                                Delete
+                            </button>
+                        )}
+                        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Calendar, Clock, Filter, History, CalendarDays } from 'lucide-react';
+import { Plus, Search, Clock, Filter, History, CalendarDays } from 'lucide-react';
 import { meetingsApi, type Meeting, type NewMeeting } from './api';
 import { tagsApi, type Tag } from '../tags/api';
 import { MeetingForm } from './MeetingForm';
