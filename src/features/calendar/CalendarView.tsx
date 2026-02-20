@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-
 import {
     format,
     startOfWeek,
@@ -20,7 +19,10 @@ import {
     eachMonthOfInterval,
     addYears,
     subYears,
-    isSameMonth
+    isBefore,
+    isAfter,
+    isSameMonth,
+    startOfDay
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, CheckSquare, Plus } from 'lucide-react';
 import { actionsApi, type Action } from '../actions/api';
@@ -33,7 +35,7 @@ type ViewMode = 'day' | 'week' | 'month' | 'year';
 
 export function CalendarView() {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [view, setView] = useState<ViewMode>('week');
+    const [view, setView] = useState<ViewMode>('day');
     const [actions, setActions] = useState<Action[]>([]);
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [tags, setTags] = useState<Tag[]>([]);
@@ -42,6 +44,10 @@ export function CalendarView() {
     // Modal states
     const [isActionFormOpen, setIsActionFormOpen] = useState(false);
     const [isMeetingFormOpen, setIsMeetingFormOpen] = useState(false);
+
+    // Choice Modal for Double Click
+    const [isChoiceModalOpen, setIsChoiceModalOpen] = useState(false);
+    const [selectedSlotDate, setSelectedSlotDate] = useState<Date | null>(null);
 
     // Check specific item for editing
     const [editingMeeting, setEditingMeeting] = useState<Meeting | undefined>(undefined);
@@ -132,9 +138,10 @@ export function CalendarView() {
     };
 
     // Open handlers
-    const openNewMeeting = () => {
-        setEditingMeeting(undefined);
+    const openNewMeeting = (initialDate?: Date) => {
+        setEditingMeeting(initialDate ? { date_time: initialDate.toISOString() } as any : undefined);
         setIsMeetingFormOpen(true);
+        setIsChoiceModalOpen(false);
     };
 
     const openEditMeeting = (meeting: Meeting) => {
@@ -142,9 +149,13 @@ export function CalendarView() {
         setIsMeetingFormOpen(true);
     };
 
-    const openNewAction = () => {
-        setEditingAction(undefined);
+    const openNewAction = (initialDate?: Date) => {
+        const d = initialDate ? initialDate : new Date();
+        // If coming from double click on time grid, we might drop the time for actions unless we add time-field support to actions (future). 
+        // For now, simple date.
+        setEditingAction({ start_date: format(d, 'yyyy-MM-dd') } as any);
         setIsActionFormOpen(true);
+        setIsChoiceModalOpen(false);
     };
 
     const openEditAction = (action: Action) => {
@@ -170,6 +181,12 @@ export function CalendarView() {
     };
 
     const handleToday = () => setCurrentDate(new Date());
+
+    // Double Click Helper
+    const handleTimeSlotDoubleClick = (date: Date) => {
+        setSelectedSlotDate(date);
+        setIsChoiceModalOpen(true);
+    };
 
     // Helper: Calculate Saturation from Hex
     const getSaturation = (hex: string) => {
@@ -237,6 +254,40 @@ export function CalendarView() {
         };
     };
 
+    // Helper to check if an action should be shown on a specific day
+    const isActionOnDay = (action: Action, day: Date) => {
+        // Strict Logic Rules (Updated for Clarity):
+        // 1. Future (Today < Start): Show on START DATE (Plan ahead).
+        // 2. Active (Start <= Today <= Due): Show on TODAY (Work on it).
+        // 3. Overdue (Today > Due): Show on DUE DATE (Late).
+
+        const today = startOfDay(new Date());
+        const targetDay = startOfDay(day);
+
+        // 0. Handle Completed/Archived Tasks -> Show on completion date (updated_at)
+        if (action.status === 'Done' || action.status === 'Archived') {
+            const doneDate = action.updated_at ? startOfDay(parseISO(action.updated_at)) : startOfDay(parseISO(action.created_at));
+            return isSameDay(targetDay, doneDate);
+        }
+
+        const start = action.start_date ? startOfDay(parseISO(action.start_date)) : (action.created_at ? startOfDay(parseISO(action.created_at)) : today);
+        const due = action.due_date ? startOfDay(parseISO(action.due_date)) : null;
+
+        // Rule 1: Future (Today < Start) -> Show on Start Date
+        // User asked "Why don't I see future tasks?", implying they want to see them on their planned day.
+        if (isBefore(today, start)) {
+            return isSameDay(targetDay, start);
+        }
+
+        // Rule 3: Overdue (Today > Due) -> Show on Due Date
+        if (due && isAfter(today, due)) {
+            return isSameDay(targetDay, due);
+        }
+
+        // Rule 2: Active (Start <= Today <= Due) -> Show on Today
+        return isSameDay(targetDay, today);
+    };
+
     // --- Render Logic ---
 
     // 1. Header
@@ -274,14 +325,14 @@ export function CalendarView() {
                     </div>
                     <div className="flex items-center gap-2">
                         <button
-                            onClick={openNewMeeting}
+                            onClick={() => openNewMeeting()}
                             className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                         >
                             <Plus className="h-4 w-4" />
                             Meeting
                         </button>
                         <button
-                            onClick={openNewAction}
+                            onClick={() => openNewAction()}
                             className="flex items-center gap-1 rounded-md bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
                         >
                             <Plus className="h-4 w-4" />
@@ -360,16 +411,13 @@ export function CalendarView() {
 
                     // Filter items for this day
                     const dayMeetings = meetings.filter(m => isSameDay(parseISO(m.date_time), day));
-                    const dayActions = actions.filter(a => {
-                        const start = a.start_date ? parseISO(a.start_date) : (a.created_at ? parseISO(a.created_at) : new Date());
-                        if (a.status === 'Done' || a.status === 'Archived') return false;
-                        return isSameDay(start, day);
-                    });
+                    const dayActions = actions.filter(a => isActionOnDay(a, day));
 
                     return (
                         <div
                             key={day.toString()}
                             className={`flex flex-col bg-card min-h-[100px] overflow-hidden group ${!isCurrentMonth ? 'bg-accent/5' : ''}`}
+                            onDoubleClick={() => handleTimeSlotDoubleClick(day)}
                         >
                             <div className={`p-2 border-b border-border/50 flex items-center justify-between ${isToday ? 'bg-primary/5 text-primary' : ''}`}>
                                 <span className="font-semibold">{format(day, 'd')}</span>
@@ -444,15 +492,15 @@ export function CalendarView() {
                     </div>
                     <div className={`grid flex-1 ${view === 'day' ? 'grid-cols-1' : 'grid-cols-7'}`}>
                         {days.map((day) => {
-                            // Filter actions for this day
-                            const dayActions = actions.filter(a => {
-                                if (a.status === 'Done' || a.status === 'Archived') return false;
-                                const start = a.start_date ? parseISO(a.start_date) : (a.created_at ? parseISO(a.created_at) : new Date());
-                                return isSameDay(start, day);
-                            });
+                            // Filter actions for this day 
+                            const dayActions = actions.filter(a => isActionOnDay(a, day));
 
                             return (
-                                <div key={day.toString()} className="border-r border-border last:border-r-0 p-1 space-y-1">
+                                <div
+                                    key={day.toString()}
+                                    className="border-r border-border last:border-r-0 p-1 space-y-1 hover:bg-muted/5 transition-colors"
+                                    onDoubleClick={() => handleTimeSlotDoubleClick(day)}
+                                >
                                     {dayActions.map(action => {
                                         const style = getItemStyle(action);
                                         return (
@@ -499,9 +547,19 @@ export function CalendarView() {
                                 // Horizontal grid lines
                                 return (
                                     <div key={day.toString()} className="relative border-r border-border last:border-r-0">
-                                        {/* Hour lines */}
+                                        {/* Hour lines (and click zones) */}
                                         {hours.map(hour => (
-                                            <div key={hour} className="absolute w-full border-t border-border/30 h-[60px]" style={{ top: hour * CELL_HEIGHT }}></div>
+                                            <div
+                                                key={hour}
+                                                className="absolute w-full border-t border-border/30 h-[60px] hover:bg-muted/5 transition-colors"
+                                                style={{ top: hour * CELL_HEIGHT }}
+                                                onDoubleClick={() => {
+                                                    const d = new Date(day);
+                                                    d.setHours(hour);
+                                                    d.setMinutes(0);
+                                                    handleTimeSlotDoubleClick(d);
+                                                }}
+                                            ></div>
                                         ))}
 
                                         {/* Meetings positioned absolutely */}
@@ -613,6 +671,38 @@ export function CalendarView() {
                 onCancel={closeActionForm}
                 onSubmit={editingAction ? handleUpdateAction : handleCreateAction}
             />
+
+            {/* Choice Modal for Double Click */}
+            {isChoiceModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-sm rounded-lg bg-card p-6 shadow-xl ring-1 ring-border">
+                        <h3 className="text-lg font-semibold mb-4">Create New Item</h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            What would you like to create for <strong>{selectedSlotDate ? format(selectedSlotDate, 'MMM d, HH:mm') : ''}</strong>?
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => openNewMeeting(selectedSlotDate || undefined)}
+                                className="flex-1 rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                            >
+                                Meeting
+                            </button>
+                            <button
+                                onClick={() => openNewAction(selectedSlotDate || undefined)}
+                                className="flex-1 rounded-md bg-secondary py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+                            >
+                                Action
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setIsChoiceModalOpen(false)}
+                            className="mt-4 w-full text-sm text-muted-foreground hover:text-foreground"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

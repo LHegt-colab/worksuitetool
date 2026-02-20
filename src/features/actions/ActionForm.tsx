@@ -66,6 +66,10 @@ export function ActionForm({ initialData, onSubmit, onCancel, isOpen }: ActionFo
             if (submissionData.start_date) submissionData.start_date = new Date(submissionData.start_date).toISOString();
             if (submissionData.due_date) submissionData.due_date = new Date(submissionData.due_date).toISOString();
 
+            // Explicitly update updated_at to NOW so it moves to Today in the Calendar if Done
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (submissionData as any).updated_at = new Date().toISOString();
+
             await onSubmit(submissionData);
             onCancel();
         } catch (error) {

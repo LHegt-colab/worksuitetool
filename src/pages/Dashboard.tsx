@@ -130,7 +130,22 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <Link to="/actions?filter=overdue" className="block rounded-xl border border-destructive/20 bg-destructive/5 p-6 shadow-sm hover:border-destructive hover:bg-destructive/10 transition-colors cursor-pointer group">
+                    <div className="flex items-center gap-4">
+                        <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-900/60 transition-colors">
+                            <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-destructive/80 group-hover:text-destructive transition-colors">Overdue Actions</p>
+                            <h3 className="text-2xl font-bold text-destructive group-hover:text-destructive transition-colors">{overdueActions.length}</h3>
+                        </div>
+                    </div>
+                    <p className="mt-2 text-xs text-destructive/70 group-hover:text-destructive flex items-center gap-1">
+                        Go to actions <ArrowRight className="h-3 w-3" />
+                    </p>
+                </Link>
+
                 <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
@@ -141,12 +156,6 @@ export default function Dashboard() {
                             <h3 className="text-2xl font-bold text-foreground">{pendingActions.length}</h3>
                         </div>
                     </div>
-                    {overdueActions.length > 0 && (
-                        <div className="mt-2 text-xs text-destructive flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            {overdueActions.length} overdue
-                        </div>
-                    )}
                 </div>
 
                 <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
@@ -246,11 +255,20 @@ export default function Dashboard() {
                                             <p className="text-sm font-medium leading-none truncate">{action.title}</p>
                                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                 <span>{action.status}</span>
-                                                {action.due_date && (
-                                                    <span className={isBefore(parseISO(action.due_date), todayStart) ? 'text-destructive font-medium' : ''}>
-                                                        Due: {action.due_date}
-                                                    </span>
-                                                )}
+                                                {action.due_date && (() => {
+                                                    const due = parseISO(action.due_date);
+                                                    const isOverdue = isBefore(due, todayStart);
+                                                    const daysOverdue = Math.floor((todayStart.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+
+                                                    return (
+                                                        <span className={isOverdue ? 'text-destructive font-bold' : ''}>
+                                                            {isOverdue
+                                                                ? `Overdue: ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} late`
+                                                                : `Due: ${action.due_date}`
+                                                            }
+                                                        </span>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </div>

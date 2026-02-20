@@ -4,6 +4,7 @@ import { ActionForm } from './ActionForm';
 import { Plus, Search, Filter, Calendar, Clock, CheckSquare, ListTodo, Archive } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 import { tagsApi, type Tag } from '../tags/api';
 
 export function ActionList() {
@@ -21,6 +22,16 @@ export function ActionList() {
     const [statusFilter, setStatusFilter] = useState<string>('All');
     const [tagFilter, setTagFilter] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
+    const location = useLocation();
+
+    // Check for query params on mount/location change
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('filter') === 'overdue') {
+            setViewMode('active');
+            setStatusFilter('Overdue');
+        }
+    }, [location.search]);
 
     const loadData = async () => {
         try {
@@ -133,7 +144,15 @@ export function ActionList() {
         if (viewMode === 'completed' && !isCompleted) return false;
 
         // 2. Filter by Status Dropdown
-        const matchesStatus = statusFilter === 'All' || action.status === statusFilter;
+        let matchesStatus = false;
+        if (statusFilter === 'All') {
+            matchesStatus = true;
+        } else if (statusFilter === 'Overdue') {
+            const isOverdue = action.due_date && action.status !== 'Done' && action.status !== 'Archived' && new Date(action.due_date) < new Date(new Date().setHours(0, 0, 0, 0));
+            matchesStatus = !!isOverdue;
+        } else {
+            matchesStatus = action.status === statusFilter;
+        }
 
         // 3. Filter by Tag Dropdown
         const matchesTag = tagFilter === 'All' || (action.label_ids?.includes(tagFilter));
@@ -253,6 +272,7 @@ export function ActionList() {
                                 <option value="Open">Open</option>
                                 <option value="Doing">Doing</option>
                                 <option value="Waiting">Waiting</option>
+                                <option value="Overdue">Overdue</option>
                             </>
                         ) : (
                             <>

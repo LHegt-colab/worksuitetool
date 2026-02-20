@@ -192,14 +192,14 @@ export function TimeList() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="rounded-md border border-input px-3 py-2 text-sm"
+                    className="rounded-md border border-input bg-background/50 text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:[color-scheme:dark]"
                 />
                 <span className="text-muted-foreground">-</span>
                 <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="rounded-md border border-input px-3 py-2 text-sm"
+                    className="rounded-md border border-input bg-background/50 text-foreground px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring dark:[color-scheme:dark]"
                 />
             </div>
 
